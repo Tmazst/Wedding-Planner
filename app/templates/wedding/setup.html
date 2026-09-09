@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Wedding details{% endblock %}
+{% block content %}
+<div class="narrow">
+  <div class="page-heading"><p class="eyebrow">Wedding details</p><h1>Let’s set up your plan</h1><p>Only the essentials for now. You can change these details later.</p></div>
+  <form class="card form-card two-column" method="post">
+    <label>Partner one<input name="partner_one" value="{{ wedding.partner_one if wedding else '' }}" required></label>
+    <label>Partner two<input name="partner_two" value="{{ wedding.partner_two if wedding else '' }}" required></label>
+    <label>Wedding date<input type="date" name="wedding_date" value="{{ wedding.wedding_date.isoformat() if wedding and wedding.wedding_date else '' }}"></label>
+    <label>Location<input name="location" value="{{ wedding.location or '' if wedding else '' }}" placeholder="e.g. Manzini"></label>
+    <label class="full">Overall budget (E)<input type="number" min="0" step="0.01" name="budget_target" value="{{ wedding.budget_target if wedding else '' }}"></label>
+    <button class="button primary full" type="submit">Save and continue</button>
+  </form>
+</div>
+{% endblock %}
+

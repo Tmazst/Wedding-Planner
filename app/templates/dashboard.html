@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ wedding.title }} · Overview{% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div><p class="eyebrow">Wedding overview</p><h1>{{ wedding.title }}</h1><p>{{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }}{% if wedding.location %} · {{ wedding.location }}{% endif %}</p></div>
+  <a class="button secondary" href="{{ url_for('main.setup_wedding') }}">Edit details</a>
+</section>
+<section class="stats-grid">
+  <article class="stat"><span>Total budget</span><strong>E{{ '%.2f'|format(wedding.budget_target) }}</strong></article>
+  <article class="stat"><span>Current estimate</span><strong>E{{ '%.2f'|format(selected_total) }}</strong></article>
+  <article class="stat {{ 'warning' if remaining < 0 else '' }}"><span>{{ 'Over budget' if remaining < 0 else 'Remaining' }}</span><strong>E{{ '%.2f'|format(remaining|abs) }}</strong></article>
+  <article class="stat"><span>Quotations</span><strong>{{ quote_count }}</strong></article>
+</section>
+<section class="card action-card">
+  <div><p class="eyebrow">Financial planning</p><h2>Compare vendor quotations</h2><p>Add categories such as venue, catering, attire, photography and décor, then collect prices before deciding.</p></div>
+  <a class="button primary" href="{{ url_for('main.budget') }}">Open budget</a>
+</section>
+{% endblock %}
+

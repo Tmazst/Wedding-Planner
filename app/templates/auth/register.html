@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Create account · Wedding Planner{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="welcome-panel"><p class="eyebrow">A simple beginning</p><h1>Start with the numbers that matter.</h1><p>Create your wedding plan and begin collecting comparable vendor quotations.</p></div>
+  <form class="card form-card" method="post">
+    <h2>Create account</h2>
+    <label>Your name<input name="name" required autocomplete="name"></label>
+    <label>Email<input type="email" name="email" required autocomplete="email"></label>
+    <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
+    <button class="button primary" type="submit">Create account</button>
+    <p class="form-foot">Already registered? <a href="{{ url_for('main.login') }}">Log in</a></p>
+  </form>
+</section>
+{% endblock %}
+
