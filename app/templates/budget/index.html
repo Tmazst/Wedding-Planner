@@ -5,8 +5,8 @@
 <section class="budget-summary">
   <article><span>Wedding budget</span><strong>E{{ '%.2f'|format(wedding.budget_target) }}</strong></article>
   <article><span>Items planned</span><strong>E{{ '%.2f'|format(planned_total) }}</strong></article>
-  <article><span>Chosen quotations</span><strong>E{{ '%.2f'|format(chosen_total) }}</strong></article>
-  <article class="{{ 'negative' if budget_remaining < 0 else '' }}"><span>{{ 'Over budget' if budget_remaining < 0 else 'Available' }}</span><strong>E{{ '%.2f'|format(budget_remaining|abs) }}</strong></article>
+  <article style="background-color: rgb(168, 141, 18);"><span>Chosen quotations</span><strong>E{{ '%.2f'|format(chosen_total) }}</strong></article>
+  <article style="background-color: rgb(27, 27, 129);" class="{{ 'negative' if budget_remaining < 0 else '' }}"><span>{{ 'Over budget' if budget_remaining < 0 else 'Available' }}</span><strong>E{{ '%.2f'|format(budget_remaining|abs) }}</strong></article>
 </section>
 {% if wedding.plan_tier == 'free' %}
 <div class="plan-notice"><span><strong>Free plan:</strong> {{ wedding.categories|length }} of {{ free_limit }} budget items used.</span>{% if is_owner %}<a href="{{ url_for('billing.pricing') }}">Upgrade for unlimited items</a>{% endif %}</div>

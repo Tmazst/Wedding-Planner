@@ -14,3 +14,13 @@
 .button{gap:.5rem}.couple-heading{display:flex;align-items:center;gap:1.3rem}.couple-photo-wrap{position:relative;flex:0 0 auto}.couple-photo{width:108px;height:108px;border-radius:50%;display:block;object-fit:cover;border:4px solid var(--white);box-shadow:var(--shadow)}.couple-photo.placeholder{display:grid;place-items:center;background:linear-gradient(145deg,var(--rose),#e8bfd0);color:var(--plum);font-size:2.1rem}.photo-edit{position:absolute;right:0;bottom:0;width:36px;height:36px;border-radius:50%;border:3px solid var(--cream);background:var(--plum);color:#fff;cursor:pointer}.photo-form input{display:none}.heading-actions{align-self:center}.account-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.75fr);gap:1.2rem;align-items:start}.account-sidebar{display:grid;gap:1.2rem}.plan-card{padding:1.6rem}.plan-card .button{margin-top:.5rem}.payment-note{margin-top:1rem}.payment-row{display:flex;justify-content:space-between;gap:1rem;padding:.9rem 0;border-top:1px solid var(--line)}.payment-row small,.payment-amount span{display:block}.payment-row small{color:var(--muted);margin-top:.2rem}.payment-amount{text-align:right}
 @media(max-width:850px){.account-layout{grid-template-columns:1fr}}
 @media(max-width:560px){.couple-heading{align-items:flex-start}.couple-photo{width:82px;height:82px}.wedding-heading{gap:1.3rem}.heading-actions,.heading-actions .button{width:100%}}
+
+.footer{
+    background: var(--plum);
+    color: var(--white);
+    text-align: center;
+    padding: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
