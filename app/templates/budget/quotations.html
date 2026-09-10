@@ -10,13 +10,13 @@
     <label>Quoted amount (E)<input type="number" name="amount" min="0.01" step="0.01" required></label>
     <label>Phone / contact<input name="contact"></label>
     <label>Notes<textarea name="notes" rows="3" placeholder="What is included?"></textarea></label>
-    <button class="button primary" type="submit">Save quotation</button>
+    <button class="button primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save quotation</button>
   </form>
   <div class="quote-list">
     {% for quote in category.quotations %}
       <article class="card quote-card {{ 'selected' if quote.is_selected else '' }}">
         <div><span class="status">{{ 'Chosen quotation' if quote.is_selected else 'Quotation' }}</span><h2>{{ quote.vendor_name }}</h2>{% if quote.contact %}<p>{{ quote.contact }}</p>{% endif %}{% if quote.notes %}<p class="muted">{{ quote.notes }}</p>{% endif %}</div>
-        <div class="quote-price"><strong>E{{ '%.2f'|format(quote.amount) }}</strong>{% if not quote.is_selected %}<form method="post" action="{{ url_for('main.select_quote', quote_id=quote.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit">Choose</button></form>{% endif %}</div>
+        <div class="quote-price"><strong>E{{ '%.2f'|format(quote.amount) }}</strong>{% if not quote.is_selected %}<form method="post" action="{{ url_for('main.select_quote', quote_id=quote.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i> Choose</button></form>{% endif %}</div>
       </article>
     {% else %}<div class="card empty"><h2>No quotations yet</h2><p>Add vendor prices here so the couple can compare before choosing.</p></div>{% endfor %}
   </div>

@@ -9,7 +9,7 @@
     <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
     <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
     <fieldset><legend>Who pays the E{{ '%.0f'|format(stakeholder_price) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"> I will pay for them now</label></fieldset>
-    <button class="button primary" type="submit">Create invitation</button>
+    <button class="button primary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Create invitation</button>
   </form>
   <div class="team-list">
     {% for invitation in wedding.invitations|reverse %}
@@ -19,4 +19,3 @@
   </div>
 </section>
 {% endblock %}
-

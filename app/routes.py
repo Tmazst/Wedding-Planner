@@ -1,12 +1,15 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
+import secrets
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import select
 
 from .extensions import db
-from .models import BudgetCategory, Quotation, User, Wedding, WeddingMember
+from .models import BudgetCategory, Invitation, Payment, Quotation, User, Wedding, WeddingMember
 
 
 bp = Blueprint("main", __name__)
@@ -147,6 +150,102 @@ def account_phone():
                     return redirect(url_for("billing.accept_invitation", token=destination.split(":", 1)[1]))
                 return redirect(url_for("billing.pricing"))
     return render_template("auth/phone.html", next_step=request.args.get("next", "pricing"))
+
+
+@bp.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    wedding = current_wedding()
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        phone_number = normalize_phone(request.form.get("phone_number"))
+        email_owner = db.session.scalar(select(User).where(User.email == email, User.id != current_user.id))
+        phone_owner = db.session.scalar(select(User).where(User.phone_number == phone_number, User.id != current_user.id))
+        if not name or not email or not phone_number.startswith("268") or len(phone_number) != 11:
+            flash("Enter your name, email and a valid Eswatini mobile number.", "error")
+        elif email_owner:
+            flash("That email address is already in use.", "error")
+        elif phone_owner:
+            flash("That phone number is already in use.", "error")
+        else:
+            current_user.name = name
+            current_user.email = email
+            current_user.phone_number = phone_number
+            db.session.commit()
+            flash("Account details updated.", "success")
+            return redirect(url_for("main.account"))
+
+    payments = db.session.scalars(
+        select(Payment).where(Payment.user_id == current_user.id).order_by(Payment.created_at.desc())
+    ).all()
+    membership = None
+    access_invitation = None
+    if wedding and wedding.owner_id != current_user.id:
+        membership = db.session.scalar(
+            select(WeddingMember).where(
+                WeddingMember.wedding_id == wedding.id,
+                WeddingMember.user_id == current_user.id,
+            )
+        )
+        access_invitation = db.session.scalar(
+            select(Invitation).where(
+                Invitation.wedding_id == wedding.id,
+                Invitation.accepted_by_user_id == current_user.id,
+            )
+        )
+    return render_template(
+        "account.html", wedding=wedding, payments=payments,
+        membership=membership, access_invitation=access_invitation,
+    )
+
+
+@bp.route("/wedding/photo", methods=["POST"])
+@login_required
+def upload_wedding_photo():
+    wedding = current_wedding()
+    if wedding is None or wedding.owner_id != current_user.id:
+        return ("Not found", 404)
+    uploaded = request.files.get("profile_image")
+    if uploaded is None or not uploaded.filename:
+        flash("Choose a photo to upload.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    try:
+        image = Image.open(uploaded.stream)
+        image.verify()
+        uploaded.stream.seek(0)
+        image = Image.open(uploaded.stream)
+        image = ImageOps.exif_transpose(image)
+        image.thumbnail((1600, 1600))
+        if image.mode not in {"RGB", "L"}:
+            background = Image.new("RGB", image.size, "white")
+            if "A" in image.getbands():
+                background.paste(image, mask=image.getchannel("A"))
+            else:
+                background.paste(image)
+            image = background
+        elif image.mode == "L":
+            image = image.convert("RGB")
+    except (UnidentifiedImageError, OSError, ValueError):
+        flash("Upload a valid JPG, PNG or WebP image.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    folder = Path(current_app.config["WEDDING_PHOTO_FOLDER"]) / str(wedding.id)
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = f"{secrets.token_hex(12)}.jpg"
+    destination = folder / filename
+    image.save(destination, "JPEG", quality=88, optimize=True)
+
+    previous = wedding.profile_image
+    wedding.profile_image = f"weddings/{wedding.id}/{filename}"
+    db.session.commit()
+    if previous:
+        previous_path = Path(current_app.config["WEDDING_PHOTO_FOLDER"]).parent / previous
+        if previous_path.is_file():
+            previous_path.unlink()
+    flash("Your couple photo has been updated.", "success")
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/dashboard")

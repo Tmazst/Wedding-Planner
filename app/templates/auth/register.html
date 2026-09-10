@@ -11,7 +11,7 @@
     <label>Email<input type="email" name="email" required autocomplete="email"></label>
     <label>MTN MoMo phone number<input type="tel" name="phone_number" placeholder="7612 3456" required autocomplete="tel"></label>
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
-    <button class="button primary" type="submit">Create account</button>
+    <button class="button primary" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create account</button>
     <p class="form-foot">Already registered? <a href="{{ url_for('main.login', invite=invite_token) }}">Log in</a></p>
   </form>
 </section>

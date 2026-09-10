@@ -1,4 +1,7 @@
+from io import BytesIO
+
 import pytest
+from PIL import Image
 from sqlalchemy import select
 
 from app import create_app
@@ -20,9 +23,10 @@ class TestConfig:
 
 
 @pytest.fixture()
-def app(monkeypatch):
+def app(monkeypatch, tmp_path):
     monkeypatch.setenv("MOJAPOS_MOCK_MODE", "true")
     application = create_app(TestConfig)
+    application.config["WEDDING_PHOTO_FOLDER"] = tmp_path / "uploads" / "weddings"
     with application.app_context():
         db.create_all()
     return application
@@ -125,3 +129,32 @@ def test_invitee_can_pay_their_own_e30_access(app, client):
         assert str(payment.amount) == "30.00"
         assert db.session.scalar(select(WeddingMember)) is not None
 
+
+def test_account_details_can_be_updated(app, client):
+    create_owner_wedding(client)
+    response = client.post("/account", data={
+        "name": "Updated Owner", "email": "updated@example.com", "phone_number": "76456789",
+    }, follow_redirects=True)
+    assert b"Account details updated" in response.data
+    assert b"Free plan" in response.data
+    with app.app_context():
+        user = db.session.scalar(select(Wedding).where(Wedding.owner_id.is_not(None))).owner
+        assert user.name == "Updated Owner"
+        assert user.phone_number == "26876456789"
+
+
+def test_owner_can_upload_couple_photo(app, client):
+    create_owner_wedding(client)
+    photo = BytesIO()
+    Image.new("RGB", (80, 60), "#6f294d").save(photo, "PNG")
+    photo.seek(0)
+    response = client.post(
+        "/wedding/photo", data={"profile_image": (photo, "couple.png")},
+        content_type="multipart/form-data", follow_redirects=True,
+    )
+    assert b"couple photo has been updated" in response.data
+    with app.app_context():
+        wedding = db.session.scalar(select(Wedding))
+        assert wedding.profile_image.endswith(".jpg")
+        saved = app.config["WEDDING_PHOTO_FOLDER"].parent / wedding.profile_image
+        assert saved.is_file()
