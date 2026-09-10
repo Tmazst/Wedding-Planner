@@ -2,12 +2,22 @@
 {% block title %}Budget · {{ wedding.title }}{% endblock %}
 {% block content %}
 <section class="page-heading"><p class="eyebrow">Financial plan</p><h1>Budget & quotations</h1><p>Build the budget one decision at a time.</p></section>
+<section class="budget-summary">
+  <article><span>Wedding budget</span><strong>E{{ '%.2f'|format(wedding.budget_target) }}</strong></article>
+  <article><span>Items planned</span><strong>E{{ '%.2f'|format(planned_total) }}</strong></article>
+  <article><span>Chosen quotations</span><strong>E{{ '%.2f'|format(chosen_total) }}</strong></article>
+  <article class="{{ 'negative' if budget_remaining < 0 else '' }}"><span>{{ 'Over budget' if budget_remaining < 0 else 'Available' }}</span><strong>E{{ '%.2f'|format(budget_remaining|abs) }}</strong></article>
+</section>
+{% if wedding.plan_tier == 'free' %}
+<div class="plan-notice"><span><strong>Free plan:</strong> {{ wedding.categories|length }} of {{ free_limit }} budget items used.</span>{% if is_owner %}<a href="{{ url_for('billing.pricing') }}">Upgrade for unlimited items</a>{% endif %}</div>
+{% endif %}
 <section class="split-layout">
   <form class="card form-card compact" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Add budget item</h2>
     <label>Item name<input name="name" placeholder="e.g. Photography" required></label>
     <label>Planned amount (E)<input type="number" name="planned_amount" min="0" step="0.01" required></label>
-    <button class="button primary" type="submit">Add item</button>
+    <button class="button primary" type="submit" {% if wedding.plan_tier == 'free' and wedding.categories|length >= free_limit %}disabled{% endif %}>Add item</button>
   </form>
   <div class="card table-card">
     {% if wedding.categories %}
@@ -18,4 +28,3 @@
   </div>
 </section>
 {% endblock %}
-

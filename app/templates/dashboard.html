@@ -2,9 +2,14 @@
 {% block title %}{{ wedding.title }} · Overview{% endblock %}
 {% block content %}
 <section class="page-heading heading-row">
-  <div><p class="eyebrow">Wedding overview</p><h1>{{ wedding.title }}</h1><p>{{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }}{% if wedding.location %} · {{ wedding.location }}{% endif %}</p></div>
-  <a class="button secondary" href="{{ url_for('main.setup_wedding') }}">Edit details</a>
+  <div><p class="eyebrow">Wedding overview · {{ wedding.plan_tier|title }} plan</p><h1>{{ wedding.title }}</h1><p>{{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }}{% if wedding.location %} · {{ wedding.location }}{% endif %}</p></div>
+  {% if is_owner %}<a class="button secondary" href="{{ url_for('main.setup_wedding') }}">Edit details</a>{% endif %}
 </section>
+{% if is_owner and wedding.plan_tier == 'free' %}
+<section class="card upgrade-strip"><div><strong>Ready to plan together?</strong><p>Upgrade once for E{{ '%.0f'|format(owner_price) }} to unlock unlimited budget items and stakeholder invitations.</p></div><a class="button primary" href="{{ url_for('billing.pricing') }}">View Standard</a></section>
+{% elif is_owner %}
+<section class="card upgrade-strip"><div><strong>Your team</strong><p>Invite your partner, matron of honour, family or trusted friends for E{{ '%.0f'|format(stakeholder_price) }} each.</p></div><a class="button primary" href="{{ url_for('billing.team') }}">Manage invitations</a></section>
+{% endif %}
 <section class="stats-grid">
   <article class="stat"><span>Total budget</span><strong>E{{ '%.2f'|format(wedding.budget_target) }}</strong></article>
   <article class="stat"><span>Current estimate</span><strong>E{{ '%.2f'|format(selected_total) }}</strong></article>
@@ -16,4 +21,3 @@
   <a class="button primary" href="{{ url_for('main.budget') }}">Open budget</a>
 </section>
 {% endblock %}
-

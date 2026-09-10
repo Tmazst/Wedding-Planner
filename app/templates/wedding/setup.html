@@ -4,6 +4,7 @@
 <div class="narrow">
   <div class="page-heading"><p class="eyebrow">Wedding details</p><h1>Let’s set up your plan</h1><p>Only the essentials for now. You can change these details later.</p></div>
   <form class="card form-card two-column" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Partner one<input name="partner_one" value="{{ wedding.partner_one if wedding else '' }}" required></label>
     <label>Partner two<input name="partner_two" value="{{ wedding.partner_two if wedding else '' }}" required></label>
     <label>Wedding date<input type="date" name="wedding_date" value="{{ wedding.wedding_date.isoformat() if wedding and wedding.wedding_date else '' }}"></label>
@@ -13,4 +14,3 @@
   </form>
 </div>
 {% endblock %}
-
