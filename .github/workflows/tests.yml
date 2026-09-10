@@ -15,8 +15,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: pytest -q
+      - run: python -m pytest -q
         env:
           MOJAPOS_MOCK_MODE: "true"
           MOJAPOS_MOCK_AUTO_COMPLETE: "true"
-
