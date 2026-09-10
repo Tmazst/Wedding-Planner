@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Payment status{% endblock %}
+{% block content %}
+<section class="payment-result card">
+  <span class="status status-{{ payment.status }}">{{ payment.status|title }}</span>
+  {% if payment.status == 'completed' %}<h1>Payment confirmed</h1><p>E{{ '%.2f'|format(payment.amount) }} has been received and access is active.</p><a class="button primary" href="{{ url_for('main.dashboard') if payment.kind != 'owner_pays_invite' else url_for('billing.team') }}">Continue</a>
+  {% elif payment.status == 'failed' %}<h1>Payment not completed</h1><p>{{ payment.failure_reason or 'Please try again.' }}</p><a class="button secondary" href="{{ url_for('billing.pricing') }}">Return to pricing</a>
+  {% elif payment.status == 'review' %}<h1>Payment needs review</h1><p>The payment details did not match the expected amount. No access was granted.</p>
+  {% else %}<h1>Approve the payment on your phone</h1><p>Your E{{ '%.2f'|format(payment.amount) }} payment is pending. After approving the MoMo request, refresh this page.</p><a class="button primary" href="{{ request.path }}">Refresh status</a>{% endif %}
+</section>
+{% endblock %}
+

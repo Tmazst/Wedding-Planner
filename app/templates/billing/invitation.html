@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Wedding invitation{% endblock %}
+{% block content %}
+<section class="invite-landing card">
+{% if not invitation %}<p class="eyebrow">Invitation unavailable</p><h1>This invitation link is not valid.</h1>
+{% elif expired %}<p class="eyebrow">Invitation expired</p><h1>Ask the wedding owner for a new link.</h1>
+{% else %}
+  <p class="eyebrow">You’re invited to help plan</p><h1>{{ invitation.wedding.title }}</h1><p>Join as {{ invitation.role|replace('_', ' ') }} and work from the same wedding plan.</p>
+  {% if not current_user.is_authenticated %}
+    <div class="button-row"><a class="button primary" href="{{ url_for('main.register', invite=invitation.token) }}">Create account</a><a class="button secondary" href="{{ url_for('main.login', invite=invitation.token) }}">Log in</a></div>
+  {% elif already_member %}<a class="button primary" href="{{ url_for('main.dashboard') }}">Open wedding plan</a>
+  {% elif invitation.status == 'awaiting_payment' %}<p class="plan-notice">The wedding owner’s E{{ '%.0f'|format(stakeholder_price) }} payment is still pending.</p>
+  {% elif invitation.status == 'accepted' %}<p class="plan-notice">This invitation has already been used.</p>
+  {% else %}
+    <p><strong>{{ 'Your access has already been paid for.' if invitation.payer == 'owner' else 'Your stakeholder access fee is E%.0f.'|format(stakeholder_price) }}</strong></p>
+    <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' else 'Pay with MoMo and join' }}</button></form>
+  {% endif %}
+{% endif %}
+</section>
+{% endblock %}
+

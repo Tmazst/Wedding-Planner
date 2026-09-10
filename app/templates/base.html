@@ -18,7 +18,8 @@
       <nav aria-label="Main navigation">
         <a href="{{ url_for('main.dashboard') }}">Overview</a>
         <a href="{{ url_for('main.budget') }}">Budget</a>
-        <form action="{{ url_for('main.logout') }}" method="post"><button class="link-button">Log out</button></form>
+        <a href="{{ url_for('billing.pricing') }}">Pricing</a>
+        <form action="{{ url_for('main.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link-button">Log out</button></form>
       </nav>
     {% endif %}
   </header>
@@ -30,4 +31,3 @@
   </main>
 </body>
 </html>
-

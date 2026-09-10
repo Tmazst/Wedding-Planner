@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Pricing · Wedding Planner{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">Simple pricing</p><h1>Start free. Upgrade when you need your team.</h1></section>
+<section class="pricing-grid">
+  <article class="card price-card">
+    <span class="plan-label">Free</span><h2>E0</h2><p>Build the first version of your wedding budget.</p>
+    <ul><li>Up to {{ free_limit }} budget items</li><li>Unlimited vendor quotations within those items</li><li>Quotation comparison and budget status</li></ul>
+    <span class="current-plan">{{ 'Current plan' if wedding and wedding.plan_tier == 'free' else 'Included' }}</span>
+  </article>
+  <article class="card price-card featured">
+    <span class="plan-label">Standard</span><h2>E{{ '%.0f'|format(owner_price) }}</h2><p>One-time project upgrade for the wedding creator.</p>
+    <ul><li>Unlimited budget items</li><li>Invite stakeholders to the same wedding</li><li>No stakeholder invitation limit</li><li>Each stakeholder access: E{{ '%.0f'|format(stakeholder_price) }}</li></ul>
+    {% if wedding and wedding.owner_id == current_user.id and wedding.plan_tier == 'free' %}
+      <form method="post" action="{{ url_for('billing.upgrade') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">Pay E{{ '%.0f'|format(owner_price) }} with MoMo</button></form>
+    {% elif wedding and wedding.plan_tier == 'standard' %}<span class="current-plan">Current plan</span>{% endif %}
+  </article>
+</section>
+{% endblock %}
+

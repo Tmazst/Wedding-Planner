@@ -10,6 +10,11 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Budget categories
 - Multiple vendor quotations per category
 - Selected quotation tracking
+- Free plan with a configurable four-budget-item limit
+- E40 Standard project upgrade through MojaPOS / MTN MoMo
+- E30 stakeholder access with owner-pays or invitee-pays choice
+- Private, expiring invitation links and shared project access
+- Live budget totals while quotations are added and selected
 - Responsive, simple interface
 
 ## Run locally
@@ -22,8 +27,10 @@ Windows:
 
 ```bash
 .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+copy .env.example .env
 flask --app run db upgrade
+pytest -q
 flask --app run run --debug
 ```
 
@@ -40,9 +47,20 @@ flask --app run db upgrade
 
 ## Next small milestones
 
-1. Invite partner and trusted stakeholders
-2. Wedding programme planning
-3. Invitation and guest list
-4. Clean report view and PDF export
-5. Selected information sharing through openWA
+1. Wedding programme planning
+2. Invitation and guest list
+3. Clean report view and PDF export
+4. Selected information sharing through openWA
 
+## Pricing configuration
+
+Pricing and free-tier limits are controlled from `.env`:
+
+```ini
+FREE_BUDGET_ITEM_LIMIT=4
+OWNER_PLAN_PRICE=40.00
+STAKEHOLDER_PRICE=30.00
+```
+
+Local proofing uses MojaPOS mock mode. Before production, set both mock options to
+`false`, add the real API key and configure `/api/payment/callback` in MojaPOS.
