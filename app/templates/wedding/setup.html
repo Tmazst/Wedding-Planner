@@ -10,7 +10,7 @@
     <label>Wedding date<input type="date" name="wedding_date" value="{{ wedding.wedding_date.isoformat() if wedding and wedding.wedding_date else '' }}"></label>
     <label>Location<input name="location" value="{{ wedding.location or '' if wedding else '' }}" placeholder="e.g. Manzini"></label>
     <label class="full">Overall budget (E)<input type="number" min="0" step="0.01" name="budget_target" value="{{ wedding.budget_target if wedding else '' }}"></label>
-    <button class="button primary full" type="submit">Save and continue</button>
+    <button class="button primary full" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Save and continue</button>
   </form>
 </div>
 {% endblock %}

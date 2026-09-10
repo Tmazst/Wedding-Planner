@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}My account · Wedding Planner{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">Your account</p><h1>Details & plan</h1><p>Keep your contact details ready for MoMo payments and review your wedding access.</p></section>
+<section class="account-layout">
+  <form class="card form-card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2><i class="fa-solid fa-user-pen" aria-hidden="true"></i> Personal details</h2>
+    <label>Full name<input name="name" value="{{ current_user.name }}" required autocomplete="name"></label>
+    <label>Email address<input type="email" name="email" value="{{ current_user.email }}" required autocomplete="email"></label>
+    <label>MTN MoMo phone number<input type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="7612 3456" required autocomplete="tel"></label>
+    <button class="button primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save details</button>
+  </form>
+  <div class="account-sidebar">
+    <article class="card plan-card"><p class="eyebrow">Wedding access</p>
+      {% if wedding and wedding.owner_id == current_user.id %}<h2>{{ wedding.plan_tier|title }} plan</h2><p>You own <strong>{{ wedding.title }}</strong>.</p>
+        {% if wedding.plan_tier == 'free' %}<a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Standard plan</a>{% else %}<span class="current-plan"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Standard access active</span>{% endif %}
+      {% elif wedding and membership %}<h2>{{ membership.role|replace('_', ' ')|title }}</h2><p>You are helping with <strong>{{ wedding.title }}</strong>.</p><span class="current-plan"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Stakeholder access active</span>{% if access_invitation %}<p class="muted payment-note">Access fee {{ 'paid by the wedding owner' if access_invitation.payer == 'owner' else 'paid by you' }}.</p>{% endif %}
+      {% else %}<h2>No wedding yet</h2><p>Create a wedding plan to get started.</p>{% endif %}
+    </article>
+    <article class="card plan-card"><h2><i class="fa-solid fa-receipt" aria-hidden="true"></i> Payments</h2>
+      {% for payment in payments %}<div class="payment-row"><div><strong>{{ payment.kind|replace('_', ' ')|title }}</strong><small>{{ payment.created_at.strftime('%d %b %Y') }}</small></div><div class="payment-amount"><strong>E{{ '%.2f'|format(payment.amount) }}</strong><span class="status status-{{ payment.status }}">{{ payment.status|title }}</span></div></div>{% else %}<p class="muted">No payments recorded yet.</p>{% endfor %}
+    </article>
+  </div>
+</section>
+{% endblock %}

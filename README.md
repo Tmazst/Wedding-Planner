@@ -15,6 +15,9 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - E30 stakeholder access with owner-pays or invitee-pays choice
 - Private, expiring invitation links and shared project access
 - Live budget totals while quotations are added and selected
+- Couple profile photo with a friendly placeholder
+- Account details, active plan and payment history
+- Font Awesome-enhanced navigation and actions
 - Responsive, simple interface
 
 ## Run locally

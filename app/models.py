@@ -30,6 +30,7 @@ class Wedding(db.Model):
     partner_two = db.Column(db.String(100), nullable=False)
     wedding_date = db.Column(db.Date, nullable=True)
     location = db.Column(db.String(160), nullable=True)
+    profile_image = db.Column(db.String(255), nullable=True)
     budget_target = db.Column(db.Numeric(12, 2), default=0, nullable=False)
     plan_tier = db.Column(db.String(20), default="free", nullable=False)
     upgraded_at = db.Column(db.DateTime, nullable=True)

@@ -22,3 +22,5 @@ class Config:
         "MOJAPOS_MOCK_AUTO_COMPLETE", "false"
     ).lower() in {"1", "true", "yes", "on"}
     CSRF_PROTECT = True
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+    WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"

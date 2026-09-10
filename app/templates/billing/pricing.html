@@ -12,9 +12,8 @@
     <span class="plan-label">Standard</span><h2>E{{ '%.0f'|format(owner_price) }}</h2><p>One-time project upgrade for the wedding creator.</p>
     <ul><li>Unlimited budget items</li><li>Invite stakeholders to the same wedding</li><li>No stakeholder invitation limit</li><li>Each stakeholder access: E{{ '%.0f'|format(stakeholder_price) }}</li></ul>
     {% if wedding and wedding.owner_id == current_user.id and wedding.plan_tier == 'free' %}
-      <form method="post" action="{{ url_for('billing.upgrade') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">Pay E{{ '%.0f'|format(owner_price) }} with MoMo</button></form>
+      <form method="post" action="{{ url_for('billing.upgrade') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Pay E{{ '%.0f'|format(owner_price) }} with MoMo</button></form>
     {% elif wedding and wedding.plan_tier == 'standard' %}<span class="current-plan">Current plan</span>{% endif %}
   </article>
 </section>
 {% endblock %}
-
