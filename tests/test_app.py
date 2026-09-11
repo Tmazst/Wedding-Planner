@@ -158,3 +158,20 @@ def test_owner_can_upload_couple_photo(app, client):
         assert wedding.profile_image.endswith(".jpg")
         saved = app.config["WEDDING_PHOTO_FOLDER"].parent / wedding.profile_image
         assert saved.is_file()
+
+
+def test_pwa_files_are_public(client):
+    manifest = client.get("/manifest.webmanifest")
+    assert manifest.status_code == 200
+    assert manifest.mimetype == "application/manifest+json"
+    assert manifest.json["name"] == "UMSHADO Wedding Planner"
+    assert manifest.json["display"] == "standalone"
+
+    worker = client.get("/service-worker.js")
+    assert worker.status_code == 200
+    assert worker.headers["Service-Worker-Allowed"] == "/"
+    assert b"umshado-static-v1" in worker.data
+
+    offline = client.get("/offline")
+    assert offline.status_code == 200
+    assert b"offline" in offline.data

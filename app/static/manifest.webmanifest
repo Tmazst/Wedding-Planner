@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "UMSHADO Wedding Planner",
+  "short_name": "UMSHADO",
+  "description": "Plan your wedding budget, compare quotations and collaborate with your wedding team.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbf8f5",
+  "theme_color": "#6f294d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Wedding overview", "short_name": "Overview", "url": "/dashboard"},
+    {"name": "Budget & quotations", "short_name": "Budget", "url": "/budget"}
+  ]
+}

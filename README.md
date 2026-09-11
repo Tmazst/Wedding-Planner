@@ -18,6 +18,7 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Couple profile photo with a friendly placeholder
 - Account details, active plan and payment history
 - Font Awesome-enhanced navigation and actions
+- Installable UMSHADO PWA with branded app icons and an offline fallback
 - Responsive, simple interface
 
 ## Run locally
