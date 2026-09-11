@@ -3,7 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#6f294d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="UMSHADO">
   <title>{% block title %}Wedding Planner{% endblock %}</title>
+  <link rel="manifest" href="{{ url_for('web_manifest') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -12,9 +19,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('main.login') }}">
-      <span>Our</span> Wedding
-    </a>
+    <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('main.login') }}" aria-label="UMSHADO Wedding Planner home"><img src="{{ url_for('static', filename='images/umshado-logo.png') }}" alt="UMSHADO Wedding Planner"></a>
     {% if current_user.is_authenticated %}
       <nav aria-label="Main navigation">
         <a href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-house" aria-hidden="true"></i> Overview</a>
@@ -32,8 +37,15 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="footer">
-    <p>© {{ current_year }} Our Wedding. All rights reserved.</p>
+    <p>© {{ current_year }} UMSHADO. All rights reserved.</p>
     <p>Powered by TechX</p>
   </footer>
+  <aside class="install-prompt" id="install-prompt" role="dialog" aria-labelledby="install-title" aria-describedby="install-description" hidden>
+    <button class="install-close" id="install-close" type="button" aria-label="Close install prompt"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="" aria-hidden="true">
+    <div><strong id="install-title">Keep UMSHADO close</strong><p id="install-description">Install the wedding planner for quick access from your phone.</p><p class="ios-install-help" id="ios-install-help" hidden>Tap <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Share, then choose <strong>Add to Home Screen</strong>.</p></div>
+    <button class="button primary" id="install-button" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install app</button>
+  </aside>
+  <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
 </body>
 </html>

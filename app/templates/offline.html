@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#6f294d">
+  <title>You’re offline · UMSHADO</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="card payment-result"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" width="96" height="96" alt=""><p class="eyebrow">Connection paused</p><h1>You’re offline</h1><p>Your wedding information is protected. Reconnect to continue planning and saving changes.</p><button class="button primary" type="button" onclick="window.location.reload()">Try again</button></section>
+  </main>
+</body>
+</html>

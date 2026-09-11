@@ -53,6 +53,11 @@ def index():
     return redirect(url_for("main.dashboard" if current_user.is_authenticated else "main.login"))
 
 
+@bp.route("/offline")
+def offline():
+    return render_template("offline.html")
+
+
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
