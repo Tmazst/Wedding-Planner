@@ -24,3 +24,8 @@
     flex-direction: column;
     justify-content: center;
 }
+@media (max-width: 560px) {
+    .couple-heading {
+        flex-wrap: wrap;
+    }
+}

@@ -13,9 +13,9 @@
   {% if is_owner %}<div class="heading-actions"><form class="photo-form" method="post" action="{{ url_for('main.upload_wedding_photo') }}" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input id="photo-upload" type="file" name="profile_image" accept="image/jpeg,image/png,image/webp" onchange="this.form.submit()"></form><a class="button secondary" href="{{ url_for('main.setup_wedding') }}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit details</a></div>{% endif %}
 </section>
 {% if is_owner and wedding.plan_tier == 'free' %}
-<section class="card upgrade-strip"><div><strong>Ready to plan together?</strong><p>Upgrade once for E{{ '%.0f'|format(owner_price) }} to unlock unlimited budget items and stakeholder invitations.</p></div><a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Standard</a></section>
+<section class="card upgrade-strip"><div><strong>Ready to plan together?</strong><p>Upgrade once for E{{ '%.0f'|format(owner_price) }} to unlock unlimited budget items and stakeholder invitations.</p></div><a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Standard</a></section><br>
 {% elif is_owner %}
-<section class="card upgrade-strip"><div><strong>Your team</strong><p>Invite your partner, matron of honour, family or trusted friends for E{{ '%.0f'|format(stakeholder_price) }} each.</p></div><a class="button primary" href="{{ url_for('billing.team') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Manage invitations</a></section>
+<section class="card upgrade-strip"><div><strong>Your team</strong><p>Invite your partner, matron of honour, family or trusted friends for E{{ '%.0f'|format(stakeholder_price) }} each.</p></div><a class="button primary" href="{{ url_for('billing.team') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Manage invitations</a></section><br>
 {% endif %}
 <section class="stats-grid">
   <article class="stat"><span>Total budget</span><strong>E{{ '%.2f'|format(wedding.budget_target) }}</strong></article>
