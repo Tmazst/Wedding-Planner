@@ -6,12 +6,13 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from sqlalchemy import select
 
-from mojapos_payments import make_external_ref_id
+from mojapos_payments import make_external_ref_id, config as moja_config
 
 from .extensions import db
 from .models import Invitation, Payment, WeddingMember
 from .payment_gateway import complete_mock_payment
 from .routes import current_wedding
+
 
 
 bp = Blueprint("billing", __name__)
@@ -60,10 +61,11 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
         db.session.commit()
         return payment
 
-    payment.gateway_transaction_id = result.get("gateway_transaction_id")
+    payment.gateway_transaction_id = result.get("gateway_transaction_id") #Don't we need to compare it with the original transaction id from the DB before commiting?
     payment.provider_reference = result.get("provider_reference")
-    db.session.commit()
+    
     complete_mock_payment(payment)
+    db.session.commit()
     return payment
 
 
@@ -94,6 +96,15 @@ def upgrade():
     payment = create_gateway_payment(
         kind="owner_upgrade", amount=configured_price("OWNER_PLAN_PRICE"), wedding=wedding
     )
+    #Temporal for quick test
+    if moja_config.MojaposConfig().mock_mode == True:
+        payment.status = 'completed'
+        payment.invitation_id = "4hH9854i55"
+        payment.provider_reference = "Wedding-Payments-0001"
+        payment.gateway_transaction_id = "mock_89JH8C45"
+        payment.completed_at=datetime.now(timezone.utc)
+        wedding.plan_tier = "standard"
+    db.session.commit()
     return redirect(url_for("billing.payment_status", payment_id=payment.id))
 
 

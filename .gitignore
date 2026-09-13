@@ -6,3 +6,5 @@ instance/
 .pytest_cache/
 app/static/uploads/weddings/*
 !app/static/uploads/weddings/.gitkeep
+app/billing.py
+updates.txt

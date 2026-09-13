@@ -30,7 +30,9 @@ class MojaposService:
                               status, payment_url}
             success=False -> {success, error}
         """
+        print("[TEST PAY]--Payment Initiated, CONFIG--",self.config.mock_mode)
         if self.config.mock_mode:
+
             return {
                 'success': True,
                 'gateway_transaction_id': f'mock_{external_ref_id}',
