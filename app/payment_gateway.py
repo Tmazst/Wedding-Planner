@@ -8,6 +8,7 @@ from mojapos_payments import MojaposConfig, MojaposPayments, PaymentHandler, Pay
 
 from .extensions import db
 from .models import Invitation, Payment, WeddingMember
+from .payment_logging import payment_event
 
 
 def _decimal(value):
@@ -42,6 +43,8 @@ class WeddingPaymentHandler(PaymentHandler):
             row.status = "review"
             row.failure_reason = "Gateway amount or currency did not match the expected payment."
             db.session.commit()
+            payment_event('callback_review', payment_id=row.id, ref=row.external_ref_id,
+                          reason='amount_or_currency_mismatch')
             return
 
         claimed = db.session.execute(
@@ -74,6 +77,7 @@ class WeddingPaymentHandler(PaymentHandler):
                 invitation.accepted_at = datetime.now(timezone.utc)
                 self._ensure_member(invitation.wedding_id, row.user_id, invitation.role)
         db.session.commit()
+        payment_event('callback_completed', payment_id=row.id, ref=row.external_ref_id, kind=row.kind)
 
     def on_payment_failed(self, record, webhook):
         db.session.execute(
@@ -82,6 +86,7 @@ class WeddingPaymentHandler(PaymentHandler):
             .values(status="failed", failure_reason="Payment was declined or cancelled.")
         )
         db.session.commit()
+        payment_event('callback_failed', ref=record.external_ref_id)
 
     @staticmethod
     def _ensure_member(wedding_id, user_id, role="stakeholder"):
@@ -101,9 +106,9 @@ def build_gateway():
 
 def complete_mock_payment(payment):
     """Complete only explicitly enabled mock payments; production always waits for a webhook."""
-    if not current_app.config["MOJAPOS_MOCK_AUTO_COMPLETE"]:
-        return
     gateway = current_app.extensions["mojapos_payments"]
+    if not gateway.service.config.mock_mode or not current_app.config["MOJAPOS_MOCK_AUTO_COMPLETE"]:
+        return
     record = gateway.handler.get_payment(payment.external_ref_id)
     if record is None:
         return

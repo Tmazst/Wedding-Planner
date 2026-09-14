@@ -6,11 +6,12 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from sqlalchemy import select
 
-from mojapos_payments import make_external_ref_id, config as moja_config
+from mojapos_payments import make_external_ref_id
 
 from .extensions import db
 from .models import Invitation, Payment, WeddingMember
 from .payment_gateway import complete_mock_payment
+from .payment_logging import payment_event
 from .routes import current_wedding
 
 
@@ -33,6 +34,8 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
         ).order_by(Payment.created_at.desc())
     )
     if existing:
+        payment_event('payment_reused', payment_id=existing.id, ref=existing.external_ref_id,
+                      gateway_id=existing.gateway_transaction_id, kind=existing.kind)
         return existing
     payment = Payment(
         external_ref_id=make_external_ref_id(),
@@ -48,6 +51,10 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
     db.session.commit()  # webhook must be able to find this row before the API call
 
     gateway = current_app.extensions["mojapos_payments"]
+    mode = 'mock' if gateway.service.config.mock_mode else 'live'
+    payment_event('payment_created', payment_id=payment.id, ref=payment.external_ref_id,
+                  kind=kind, amount=payment.amount, currency=payment.currency, mode=mode)
+    payment_event('gateway_request', payment_id=payment.id, ref=payment.external_ref_id, mode=mode)
     result = gateway.service.initiate_payment(
         external_ref_id=payment.external_ref_id,
         amount=payment.amount,
@@ -56,16 +63,21 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
         note="Wedding Planner subscription",
     )
     if not result.get("success"):
+        payment_event('gateway_rejected', payment_id=payment.id, ref=payment.external_ref_id,
+                      mode=result.get('mode'), http_status=result.get('http_status'),
+                      error_kind=result.get('error_kind'), elapsed_ms=result.get('elapsed_ms'))
         payment.status = "failed"
         payment.failure_reason = result.get("error", "The payment could not be started.")[:255]
         db.session.commit()
         return payment
 
-    payment.gateway_transaction_id = result.get("gateway_transaction_id") #Don't we need to compare it with the original transaction id from the DB before commiting?
+    payment.gateway_transaction_id = result.get("gateway_transaction_id")
     payment.provider_reference = result.get("provider_reference")
-    
-    complete_mock_payment(payment)
     db.session.commit()
+    payment_event('gateway_accepted', payment_id=payment.id, ref=payment.external_ref_id,
+                  mode=result.get('mode'), http_status=result.get('http_status'),
+                  gateway_id=payment.gateway_transaction_id, elapsed_ms=result.get('elapsed_ms'))
+    complete_mock_payment(payment)
     return payment
 
 
@@ -96,15 +108,6 @@ def upgrade():
     payment = create_gateway_payment(
         kind="owner_upgrade", amount=configured_price("OWNER_PLAN_PRICE"), wedding=wedding
     )
-    #Temporal for quick test
-    if moja_config.MojaposConfig().mock_mode == True:
-        payment.status = 'completed'
-        payment.invitation_id = "4hH9854i55"
-        payment.provider_reference = "Wedding-Payments-0001"
-        payment.gateway_transaction_id = "mock_89JH8C45"
-        payment.completed_at=datetime.now(timezone.utc)
-        wedding.plan_tier = "standard"
-    db.session.commit()
     return redirect(url_for("billing.payment_status", payment_id=payment.id))
 
 

@@ -68,3 +68,21 @@ STAKEHOLDER_PRICE=30.00
 
 Local proofing uses MojaPOS mock mode. Before production, set both mock options to
 `false`, add the real API key and configure `/api/payment/callback` in MojaPOS.
+
+## Payment tracing during live testing
+
+The server writes a private, rotating `instance/payments.log` (2 MB, two
+backups) and the same short events to the Gunicorn journal. Only payment IDs,
+transaction references, mode, HTTP status and timing are logged; never API keys,
+phone numbers, or gateway payloads. Ensure the Gunicorn user can write to
+`instance/`, then follow the log:
+
+```bash
+sudo tail -f /var/www/wedding-planner/Wedding-Planner/instance/payments.log
+```
+
+`gateway_accepted mode=mock` means **no HTTP request was made**. Live gateway
+acceptance shows `mode=live`, an HTTP status, and gateway ID. The app reuses
+pending records to avoid double charging; confirm their state with MojaPOS before
+retrying. Do not share the log publicly. Before taking real payments, confirm
+webhook signature verification against MojaPOS's actual signing scheme.

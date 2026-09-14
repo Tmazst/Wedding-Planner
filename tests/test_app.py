@@ -175,3 +175,64 @@ def test_pwa_files_are_public(client):
     offline = client.get("/offline")
     assert offline.status_code == 200
     assert b"offline" in offline.data
+
+
+
+def test_live_mock_mode_and_payment_trace(app, client, monkeypatch):
+    from types import SimpleNamespace
+    from mojapos_payments.config import MojaposConfig
+    from app.payment_gateway import build_gateway
+    assert MojaposConfig(mock_mode="false").mock_mode is False
+    assert MojaposConfig(mock_mode="true").mock_mode is True
+
+    create_owner_wedding(client)
+    monkeypatch.setenv("MOJAPOS_MOCK_MODE", "false")
+    gateway = build_gateway()
+    app.extensions["mojapos_payments"] = gateway
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs["json"]["metadata"]["externalId"])
+        return SimpleNamespace(
+            status_code=202, raise_for_status=lambda: None,
+            json=lambda: {"transactionId": "gateway-live-123"},
+        )
+
+    monkeypatch.setattr(gateway.service._session, "post", fake_post)
+    response = client.post("/billing/upgrade", follow_redirects=True)
+    assert b"Approve the payment on your phone" in response.data
+    assert len(calls) == 1
+    with app.app_context():
+        payment = db.session.scalar(select(Payment))
+        assert payment.status == "pending"
+        assert payment.gateway_transaction_id == "gateway-live-123"
+        assert payment.external_ref_id == calls[0]
+        assert db.session.scalar(select(Wedding)).plan_tier == "free"
+        logfile = next(h.baseFilename for h in app.extensions["payment_logger"].handlers
+                       if hasattr(h, "baseFilename"))
+        with open(logfile, encoding="utf-8") as entries:
+            audit = entries.read()
+        assert f"event=gateway_accepted payment_id={payment.id}" in audit
+        assert "mode=live" in audit
+        assert "26876123456" not in audit
+
+
+def test_old_mock_pending_payment_not_resubmitted(app, client, monkeypatch):
+    from app.payment_gateway import build_gateway
+    create_owner_wedding(client)
+    with app.app_context():
+        wedding = db.session.scalar(select(Wedding))
+        db.session.add(Payment(
+            external_ref_id="oldmock123", kind="owner_upgrade", amount="40.00",
+            currency="SZL", status="pending", user_id=wedding.owner_id,
+            wedding_id=wedding.id, gateway_transaction_id="mock_oldmock123",
+        ))
+        db.session.commit()
+    monkeypatch.setenv("MOJAPOS_MOCK_MODE", "false")
+    gateway = build_gateway()
+    app.extensions["mojapos_payments"] = gateway
+    def unexpected_post(*args, **kwargs):
+        raise AssertionError("Existing pending payment must not trigger another request")
+    monkeypatch.setattr(gateway.service._session, "post", unexpected_post)
+    response = client.post("/billing/upgrade", follow_redirects=True)
+    assert b"Test payment only" in response.data

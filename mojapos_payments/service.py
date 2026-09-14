@@ -4,6 +4,8 @@
 standalone (scripts, tasks) or through the `MojaposPayments` facade. Set
 `mock_mode=True` in development to avoid hitting the live gateway.
 """
+from time import monotonic
+
 import requests
 
 from . import signatures
@@ -30,11 +32,11 @@ class MojaposService:
                               status, payment_url}
             success=False -> {success, error}
         """
-        print("[TEST PAY]--Payment Initiated, CONFIG--",self.config.mock_mode)
         if self.config.mock_mode:
 
             return {
                 'success': True,
+                'mode': 'mock',
                 'gateway_transaction_id': f'mock_{external_ref_id}',
                 'provider_reference': None,
                 'payment_url': None,
@@ -61,30 +63,42 @@ class MojaposService:
         if self.config.api_key and self.config.webhook_secret:
             headers['X-Signature'] = signatures.sign_payload(payload, self.config.webhook_secret)
 
+        if not self.config.api_key:
+            return {'success': False, 'error': 'MojaPOS is not configured. Contact support.',
+                    'error_kind': 'missing_api_key', 'mode': 'live'}
+
+        started = monotonic()
         try:
             response = self._session.post(
                 self.config.initiate_url, json=payload, headers=headers, timeout=20
             )
             response.raise_for_status()
         except requests.exceptions.RequestException as exc:
-            print(f'[mojapos] initiate error: {exc}')
-            return {'success': False, 'error': str(exc)}
+            return {'success': False, 'error': 'The payment request could not be started. Contact support.',
+                    'error_kind': type(exc).__name__, 'mode': 'live',
+                    'http_status': getattr(getattr(exc, 'response', None), 'status_code', None),
+                    'elapsed_ms': int((monotonic() - started) * 1000)}
 
         try:
             body = response.json() or {}
         except ValueError:
             body = {}
 
+        if not isinstance(body, dict):
+            body = {}
         gateway_id = body.get('transactionId') or body.get('id')
         if gateway_id:
             return {
-                'success': True,
+                'success': True, 'mode': 'live', 'http_status': response.status_code,
+                'elapsed_ms': int((monotonic() - started) * 1000),
                 'gateway_transaction_id': gateway_id,
                 'provider_reference': body.get('providerReference'),
                 'payment_url': body.get('paymentUrl') or body.get('payment_url'),
                 'status': body.get('status', 'PENDING'),
             }
-        return {'success': False, 'error': body.get('message') or body.get('error') or 'gateway did not return a transactionId'}
+        return {'success': False, 'error': 'MojaPOS did not confirm the payment request. Contact support.',
+                'error_kind': 'missing_transaction_id', 'mode': 'live',
+                'http_status': response.status_code, 'elapsed_ms': int((monotonic() - started) * 1000)}
 
     def payout(self, *, external_ref_id, amount, phone_number, message, note=None, provider=None):
         """Payout variant. MojaPOS may route payouts to a separate endpoint --

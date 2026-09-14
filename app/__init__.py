@@ -14,6 +14,9 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
+    from .payment_logging import configure_payment_logging
+    configure_payment_logging(app)
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -71,5 +74,12 @@ def create_app(config_class=Config):
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)
+
+    @app.after_request
+    def audit_payment_callback(response):
+        if request.endpoint == 'mojapos_payments.mojapos_callback':
+            from .payment_logging import payment_event
+            payment_event('callback_http', http_status=response.status_code)
+        return response
 
     return app
