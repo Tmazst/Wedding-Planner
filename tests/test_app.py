@@ -52,6 +52,38 @@ def create_owner_wedding(client):
     })
 
 
+def test_stale_login_form_recovers_without_disabling_csrf(monkeypatch, tmp_path):
+    monkeypatch.setenv("MOJAPOS_MOCK_MODE", "true")
+
+    class ProtectedConfig(TestConfig):
+        CSRF_PROTECT = True
+
+    application = create_app(ProtectedConfig)
+    browser = application.test_client()
+    login_page = browser.get("/login")
+    assert login_page.headers["Cache-Control"] == "private, no-store"
+    with browser.session_transaction() as session:
+        session["csrf_token"] = "new-session-token"
+    expired = browser.post("/login", data={"csrf_token": "old-session-token", "email": "x@example.com", "password": "wrong"})
+    assert expired.status_code == 303
+    assert expired.headers["Location"].startswith("/login")
+    assert b"sign-in form expired" in browser.get(expired.headers["Location"]).data
+
+
+def test_stale_other_form_has_friendly_error_and_no_store(monkeypatch):
+    monkeypatch.setenv("MOJAPOS_MOCK_MODE", "true")
+
+    class ProtectedConfig(TestConfig):
+        CSRF_PROTECT = True
+
+    application = create_app(ProtectedConfig)
+    browser = application.test_client()
+    response = browser.post("/logout", data={"csrf_token": "bad"})
+    assert response.status_code == 400
+    assert b"Form expired" in response.data
+    assert response.headers["Cache-Control"] == "private, no-store"
+
+
 def test_free_limit_and_budget_totals(app, client):
     create_owner_wedding(client)
     for number in range(4):
