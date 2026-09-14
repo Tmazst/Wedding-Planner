@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Form expired · UMSHADO{% endblock %}
+{% block content %}
+<section class="card payment-result">
+  <h1>Form expired</h1>
+  <p>Your session changed while this page was open. No changes were saved. Open the form again and resubmit it.</p>
+  <a class="button primary" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('main.login') }}">Continue</a>
+</section>
+{% endblock %}

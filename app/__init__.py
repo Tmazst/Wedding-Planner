@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import hmac
 import secrets
 
-from flask import Flask, abort, request, send_from_directory, session
+from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 
 from config import Config
 from .extensions import db, login_manager, migrate
@@ -57,8 +57,23 @@ def create_app(config_class=Config):
         expected = session.get("csrf_token", "")
         supplied = request.form.get("csrf_token", "")
         if not expected or not hmac.compare_digest(expected, supplied):
+            if request.endpoint in {"main.login", "main.register"}:
+                flash("Your sign-in form expired. Please try again.", "error")
+                return redirect(url_for(request.endpoint, invite=request.args.get("invite", "")), code=303)
             abort(400, description="Invalid or missing form token.")
         return None
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        if error.description == "Invalid or missing form token.":
+            return render_template("csrf_expired.html"), 400
+        return error
+
+    @app.after_request
+    def prevent_stale_forms(response):
+        if response.mimetype == "text/html":
+            response.headers["Cache-Control"] = "private, no-store"
+        return response
 
     from .models import User
 
