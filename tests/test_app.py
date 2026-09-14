@@ -187,6 +187,7 @@ def test_live_mock_mode_and_payment_trace(app, client, monkeypatch):
 
     create_owner_wedding(client)
     monkeypatch.setenv("MOJAPOS_MOCK_MODE", "false")
+    monkeypatch.setenv("MOJAPOS_API_KEY", "test-not-real")
     gateway = build_gateway()
     app.extensions["mojapos_payments"] = gateway
     calls = []
