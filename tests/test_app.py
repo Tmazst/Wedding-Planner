@@ -98,9 +98,20 @@ def test_free_limit_and_budget_totals(app, client):
     client.post("/budget/1/quotes", data={"vendor_name": "Tech Xolutions", "amount": "8500"})
     client.post("/quotes/1/select")
     budget = client.get("/budget")
-    assert b"E8500.00" in budget.data
+    assert b"E8,500.00" in budget.data
     with app.app_context():
         assert len(db.session.scalar(select(Wedding)).categories) == 4
+
+
+
+def test_large_amounts_use_grouping_in_summaries(app, client):
+    create_owner_wedding(client)
+    with app.app_context():
+        wedding = db.session.scalar(select(Wedding))
+        wedding.budget_target = 1250000
+        db.session.commit()
+    assert b"E1,250,000.00" in client.get("/dashboard").data
+    assert b"E1,250,000.00" in client.get("/budget").data
 
 
 def test_standard_upgrade_is_exactly_e40(app, client):

@@ -9,10 +9,10 @@
   {% if not current_user.is_authenticated %}
     <div class="button-row"><a class="button primary" href="{{ url_for('main.register', invite=invitation.token) }}">Create account</a><a class="button secondary" href="{{ url_for('main.login', invite=invitation.token) }}">Log in</a></div>
   {% elif already_member %}<a class="button primary" href="{{ url_for('main.dashboard') }}">Open wedding plan</a>
-  {% elif invitation.status == 'awaiting_payment' %}<p class="plan-notice">The wedding owner’s E{{ '%.0f'|format(stakeholder_price) }} payment is still pending.</p>
+  {% elif invitation.status == 'awaiting_payment' %}<p class="plan-notice">The wedding owner’s E{{ stakeholder_price|moneyfmt(0) }} payment is still pending.</p>
   {% elif invitation.status == 'accepted' %}<p class="plan-notice">This invitation has already been used.</p>
   {% else %}
-    <p><strong>{{ 'Your access has already been paid for.' if invitation.payer == 'owner' else 'Your stakeholder access fee is E%.0f.'|format(stakeholder_price) }}</strong></p>
+    <p><strong>{{ 'Your access has already been paid for.' if invitation.payer == 'owner' else ('Your stakeholder access fee is E' ~ (stakeholder_price|moneyfmt(0)) ~ '.') }}</strong></p>
     <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' else 'Pay with MoMo and join' }}</button></form>
   {% endif %}
 {% endif %}

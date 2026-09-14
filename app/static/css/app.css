@@ -17,3 +17,11 @@
 .brand{display:inline-flex;align-items:center}.brand img{display:block;width:auto;height:42px;max-width:210px}.install-prompt{position:fixed;z-index:1000;right:1.25rem;bottom:1.25rem;width:min(440px,calc(100vw - 2rem));display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:1rem;padding:1rem 1.1rem;background:var(--white);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(63,34,50,.22)}.install-prompt[hidden]{display:none}.install-prompt>img{width:58px;height:58px;border-radius:13px}.install-prompt strong{font-family:"Playfair Display",serif;font-size:1.05rem}.install-prompt p{font-size:.86rem;color:var(--muted);margin:.15rem 0 0}.install-close{position:absolute;right:.45rem;top:.35rem;border:0;background:transparent;color:var(--muted);font-size:1rem;cursor:pointer;padding:.4rem}.ios-install-help{color:var(--ink)!important}.install-prompt.ios-mode{grid-template-columns:58px 1fr}.install-prompt.ios-mode .button{display:none}
 @media(max-width:650px){.brand img{height:34px;max-width:160px}.install-prompt{left:1rem;right:1rem;bottom:1rem;grid-template-columns:50px 1fr;padding:1rem}.install-prompt>img{width:50px;height:50px}.install-prompt .button{grid-column:1/-1;width:100%}}
 .footer{background:var(--plum);color:var(--white);text-align:center;padding:1.5rem 0;display:flex;flex-direction:column;justify-content:center}.footer p{margin:.1rem 0}@media(max-width:560px){.couple-heading{flex-wrap:wrap}}
+
+/* Keep financial summaries readable even when amounts have many digits. */
+.stats-grid,.budget-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stats-grid>.stat,.budget-summary>article{min-width:0}
+.stats-grid strong,.budget-summary strong{display:block;font-size:clamp(1rem,1.7vw,1.4rem);line-height:1.25;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+@media(max-width:850px){.stats-grid,.budget-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.stats-grid,.budget-summary{gap:.65rem}.stats-grid>.stat,.budget-summary>article{padding:.85rem}.stats-grid strong,.budget-summary strong{font-size:clamp(.86rem,3.3vw,1.05rem)}}
+@media(max-width:340px){.stats-grid,.budget-summary{grid-template-columns:1fr}}

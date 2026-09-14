@@ -19,7 +19,7 @@
       {% else %}<h2>No wedding yet</h2><p>Create a wedding plan to get started.</p>{% endif %}
     </article>
     <article class="card plan-card"><h2><i class="fa-solid fa-receipt" aria-hidden="true"></i> Payments</h2>
-      {% for payment in payments %}<div class="payment-row"><div><strong>{{ payment.kind|replace('_', ' ')|title }}</strong><small>{{ payment.created_at.strftime('%d %b %Y') }}</small></div><div class="payment-amount"><strong>E{{ '%.2f'|format(payment.amount) }}</strong><span class="status status-{{ payment.status }}">{{ payment.status|title }}</span></div></div>{% else %}<p class="muted">No payments recorded yet.</p>{% endfor %}
+      {% for payment in payments %}<div class="payment-row"><div><strong>{{ payment.kind|replace('_', ' ')|title }}</strong><small>{{ payment.created_at.strftime('%d %b %Y') }}</small></div><div class="payment-amount"><strong>E{{ payment.amount|moneyfmt(2) }}</strong><span class="status status-{{ payment.status }}">{{ payment.status|title }}</span></div></div>{% else %}<p class="muted">No payments recorded yet.</p>{% endfor %}
     </article>
   </div>
 </section>

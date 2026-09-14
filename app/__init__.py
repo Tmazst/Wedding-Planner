@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 import hmac
 import secrets
+from decimal import Decimal
 
 from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 
@@ -12,6 +13,10 @@ from .extensions import db, login_manager, migrate
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    @app.template_filter("moneyfmt")
+    def moneyfmt(value, places=2):
+        return f"{Decimal(value or 0):,.{places}f}"
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     from .payment_logging import configure_payment_logging
