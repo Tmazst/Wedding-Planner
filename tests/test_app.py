@@ -170,7 +170,9 @@ def test_pwa_files_are_public(client):
     worker = client.get("/service-worker.js")
     assert worker.status_code == 200
     assert worker.headers["Service-Worker-Allowed"] == "/"
-    assert b"umshado-static-v1" in worker.data
+    assert b"umshado-static-v2" in worker.data
+    assert b"request.mode === \"navigate\") return" in worker.data
+    assert b"/offline" not in worker.data
 
     offline = client.get("/offline")
     assert offline.status_code == 200

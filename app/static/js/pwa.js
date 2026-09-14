@@ -56,7 +56,18 @@
   });
 
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js"));
+    window.addEventListener("load", async () => {
+      try {
+        const registration = await navigator.serviceWorker.register("/service-worker.js", {
+          updateViaCache: "none"
+        });
+        // Do not reload automatically: a couple may be editing a form.
+        await registration.update();
+      } catch (error) {
+        // The online app still works when service workers are unavailable.
+        console.warn("UMSHADO install support is temporarily unavailable.", error);
+      }
+    });
   }
 
   window.setTimeout(() => {
