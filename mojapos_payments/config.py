@@ -29,7 +29,7 @@ class MojaposConfig:
         self.api_key = api_key or os.environ.get('MOJAPOS_API_KEY', '') or ''
         self.webhook_secret = webhook_secret or os.environ.get('MOJAPOS_WEBHOOK_SECRET', '') or ''
         self.verify_webhook = bool(verify_webhook)
-        self.mock_mode = os.environ.get('MOJAPOS_MOCK_MODE', True) #bool(mock_mode)
+        self.mock_mode = mock_mode if isinstance(mock_mode, bool) else str(mock_mode).lower() in ('1', 'true', 'yes', 'on')
         self.provider = provider
         self.currency = currency
         self.initiate_path = initiate_path

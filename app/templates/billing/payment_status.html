@@ -6,7 +6,10 @@
   {% if payment.status == 'completed' %}<h1>Payment confirmed</h1><p>E{{ '%.2f'|format(payment.amount) }} has been received and access is active.</p><a class="button primary" href="{{ url_for('main.dashboard') if payment.kind != 'owner_pays_invite' else url_for('billing.team') }}">Continue</a>
   {% elif payment.status == 'failed' %}<h1>Payment not completed</h1><p>{{ payment.failure_reason or 'Please try again.' }}</p><a class="button secondary" href="{{ url_for('billing.pricing') }}">Return to pricing</a>
   {% elif payment.status == 'review' %}<h1>Payment needs review</h1><p>The payment details did not match the expected amount. No access was granted.</p>
+  {% elif payment.gateway_transaction_id and payment.gateway_transaction_id.startswith('mock_') %}<h1>Test payment only</h1><p>No real MoMo request was sent for this payment. Contact support before trying again.</p>
+  {% elif not payment.gateway_transaction_id %}<h1>Request not confirmed</h1><p>We could not confirm that the payment reached MojaPOS. Contact support before trying again.</p>
   {% else %}<h1>Approve the payment on your phone</h1><p>Your E{{ '%.2f'|format(payment.amount) }} payment is pending. After approving the MoMo request, refresh this page.</p><a class="button primary" href="{{ request.path }}">Refresh status</a>{% endif %}
+  <p class="muted">Support reference: {{ payment.external_ref_id }}</p>
 </section>
 {% endblock %}
 
