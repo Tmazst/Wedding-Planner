@@ -64,6 +64,7 @@ def create_app(config_class=Config):
         if not expected or not hmac.compare_digest(expected, supplied):
             if request.endpoint in {"main.login", "main.register"}:
                 # flash("Your sign-in form expired. Please try again.", "error")
+                
                 return redirect(url_for(request.endpoint, invite=request.args.get("invite", "")), code=303)
             abort(400, description="Invalid or missing form token.")
         return None
