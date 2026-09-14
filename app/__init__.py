@@ -34,7 +34,7 @@ def create_app(config_class=Config):
             app.static_folder, "service-worker.js",
             mimetype="application/javascript",
         )
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-store, max-age=0"
         response.headers["Service-Worker-Allowed"] = "/"
         return response
 
