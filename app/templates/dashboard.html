@@ -37,7 +37,7 @@
     {% for activity in recent_activity %}
       <li data-activity-id="{{ activity.id }}"><span class="activity-icon" aria-hidden="true"><i class="fa-solid {{ 'fa-file-invoice-dollar' if activity.kind in ['quotation_added', 'quotation_selected'] else ('fa-user-check' if activity.kind == 'member_joined' else 'fa-list-check') }}"></i></span><div><strong>{{ activity.message }}</strong><time datetime="{{ activity.created_at.isoformat() }}">{{ activity.created_at.strftime('%d %b, %H:%M') }}</time></div></li>
     {% else %}
-      <li class="activity-empty"><div><strong>No team activity yet</strong><span>New quotations and team members will appear here instantly.</span></div></li>
+      <li class="activity-empty"><div style="width:100px"><strong>No team activity yet</strong><span>New quotations and team members will appear here instantly.</span></div></li>
     {% endfor %}
   </ol>
 </section>
