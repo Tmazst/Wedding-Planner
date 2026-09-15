@@ -2,6 +2,7 @@
 {% block title %}My account · Wedding Planner{% endblock %}
 {% block content %}
 <section class="page-heading"><p class="eyebrow">Your account</p><h1>Details & plan</h1><p>Keep your contact details ready for MoMo payments and review your wedding access.</p></section>
+{% if current_user.is_super_admin %}<p class="plan-notice"><strong>Super admin:</strong> All UMSHADO features are available to this account.</p>{% elif current_user.is_admin %}<p class="plan-notice"><strong>Administrator:</strong> All UMSHADO features are available to this account.</p>{% elif current_user.has_test_access %}<p class="plan-notice"><strong>Test account:</strong> Package and payment limits are disabled for testing.</p>{% endif %}
 <section class="account-layout">
   <form class="card form-card" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -13,8 +14,8 @@
   </form>
   <div class="account-sidebar">
     <article class="card plan-card"><p class="eyebrow">Wedding access</p>
-      {% if wedding and wedding.owner_id == current_user.id %}<h2>{{ wedding.plan_tier|title }} plan</h2><p>You own <strong>{{ wedding.title }}</strong>.</p>
-        {% if wedding.plan_tier == 'free' %}<a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Standard plan</a>{% else %}<span class="current-plan"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Standard access active</span>{% endif %}
+      {% if wedding and wedding.owner_id == current_user.id %}<h2>{{ 'Full access' if wedding.has_full_feature_access else 'Free plan' }}</h2><p>You own <strong>{{ wedding.title }}</strong>.</p>
+        {% if not wedding.has_full_feature_access %}<a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Standard plan</a>{% else %}<span class="current-plan"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Full access active</span>{% endif %}
       {% elif wedding and membership %}<h2>{{ membership.role|replace('_', ' ')|title }}</h2><p>You are helping with <strong>{{ wedding.title }}</strong>.</p><span class="current-plan"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Stakeholder access active</span>{% if access_invitation %}<p class="muted payment-note">Access fee {{ 'paid by the wedding owner' if access_invitation.payer == 'owner' else 'paid by you' }}.</p>{% endif %}
       {% else %}<h2>No wedding yet</h2><p>Create a wedding plan to get started.</p>{% endif %}
     </article>

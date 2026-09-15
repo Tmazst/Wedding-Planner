@@ -8,7 +8,7 @@
   <article style="background-color: rgb(168, 141, 18);"><span>Chosen quotations</span><strong>E{{ chosen_total|moneyfmt(2) }}</strong></article>
   <article style="background-color: rgb(27, 27, 129);" class="{{ 'negative' if budget_remaining < 0 else '' }}"><span>{{ 'Over budget' if budget_remaining < 0 else 'Available' }}</span><strong>E{{ budget_remaining|abs|moneyfmt(2) }}</strong></article>
 </section>
-{% if wedding.plan_tier == 'free' %}
+{% if not wedding.has_full_feature_access %}
 <div class="plan-notice"><span><strong>Free plan:</strong> {{ wedding.categories|length }} of {{ free_limit }} budget items used.</span>{% if is_owner %}<a href="{{ url_for('billing.pricing') }}">Upgrade for unlimited items</a>{% endif %}</div>
 {% endif %}
 <section class="split-layout">
@@ -17,7 +17,7 @@
     <h2>Add budget item</h2>
     <label>Item name<input name="name" placeholder="e.g. Photography" required></label>
     <label>Planned amount (E)<input type="number" name="planned_amount" min="0" step="0.01" required></label>
-    <button class="button primary" type="submit" {% if wedding.plan_tier == 'free' and wedding.categories|length >= free_limit %}disabled{% endif %}><i class="fa-solid fa-plus" aria-hidden="true"></i> Add item</button>
+    <button class="button primary" type="submit" {% if not wedding.has_full_feature_access and wedding.categories|length >= free_limit %}disabled{% endif %}><i class="fa-solid fa-plus" aria-hidden="true"></i> Add item</button>
   </form>
   <div class="card table-card">
     {% if wedding.categories %}
