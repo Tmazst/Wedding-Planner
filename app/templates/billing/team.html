@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Wedding team · {{ wedding.title }}{% endblock %}
 {% block content %}
-<section class="page-heading"><p class="eyebrow">Standard plan</p><h1>Wedding team</h1><p>Invite the people helping you plan. Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.</p></section>
+<section class="page-heading"><p class="eyebrow">Full access</p><h1>Wedding team</h1><p>Invite the people helping you plan.{% if not wedding.owner.has_full_feature_access %} Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.{% else %} Access fees are bypassed for this unrestricted account.{% endif %}</p></section>
 <section class="split-layout">
   <form class="card form-card compact" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Create invitation</h2>
     <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
     <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
-    <fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"> I will pay for them now</label></fieldset>
+    {% if wedding.owner.has_full_feature_access %}<input type="hidden" name="payer" value="owner"><p class="plan-notice"><strong>Included:</strong> This invitation will not require payment.</p>{% else %}<fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"> I will pay for them now</label></fieldset>{% endif %}
     <button class="button primary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Create invitation</button>
   </form>
   <div class="team-list">
     {% for invitation in wedding.invitations|reverse %}
-      <article class="card invite-card"><div><span class="status">{{ invitation.status|replace('_', ' ')|title }}</span><h2>{{ invitation.invitee_name or invitation.role|replace('_', ' ')|title }}</h2><p>{{ 'You pay' if invitation.payer == 'owner' else 'Stakeholder pays' }}</p></div>
+      <article class="card invite-card"><div><span class="status">{{ invitation.status|replace('_', ' ')|title }}</span><h2>{{ invitation.invitee_name or invitation.role|replace('_', ' ')|title }}</h2><p>{{ 'Access included' if wedding.owner.has_full_feature_access else ('You pay' if invitation.payer == 'owner' else 'Stakeholder pays') }}</p></div>
       {% if invitation.status in ['pending', 'paid'] %}<div class="invite-link"><label>Invite link<input readonly value="{{ url_for('billing.accept_invitation', token=invitation.token, _external=True) }}" onclick="this.select()"></label></div>{% endif %}</article>
     {% else %}<div class="card empty"><h2>No invitations yet</h2><p>Create a private link for your first stakeholder.</p></div>{% endfor %}
   </div>

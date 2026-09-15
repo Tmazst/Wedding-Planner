@@ -100,8 +100,8 @@ def upgrade():
     wedding = current_wedding()
     if wedding is None or wedding.owner_id != current_user.id:
         return ("Not found", 404)
-    if wedding.plan_tier == "standard":
-        flash("This wedding is already on the Standard plan.", "info")
+    if wedding.has_full_feature_access:
+        flash("Full wedding-planning access is already active.", "info")
         return redirect(url_for("main.dashboard"))
     if not current_user.phone_number:
         flash("Add your MoMo phone number before starting payment.", "info")
@@ -118,7 +118,7 @@ def team():
     wedding = current_wedding()
     if wedding is None or wedding.owner_id != current_user.id:
         return ("Not found", 404)
-    if wedding.plan_tier != "standard":
+    if not wedding.has_full_feature_access:
         flash("Upgrade to Standard before inviting stakeholders.", "error")
         return redirect(url_for("billing.pricing"))
 
@@ -127,7 +127,8 @@ def team():
         if payer not in {"owner", "invitee"}:
             flash("Choose who will pay the stakeholder access fee.", "error")
             return redirect(url_for("billing.team"))
-        if payer == "owner" and not current_user.phone_number:
+        unrestricted_wedding = wedding.owner.has_full_feature_access
+        if payer == "owner" and not unrestricted_wedding and not current_user.phone_number:
             flash("Add your MoMo phone number before paying for an invitation.", "info")
             return redirect(url_for("main.account_phone", next="team"))
         role = request.form.get("role", "stakeholder")
@@ -139,13 +140,13 @@ def team():
             invited_by_user_id=current_user.id,
             invitee_name=request.form.get("invitee_name", "").strip() or None,
             role=role,
-            payer=payer,
-            status="awaiting_payment" if payer == "owner" else "pending",
+            payer="owner" if unrestricted_wedding else payer,
+            status="paid" if unrestricted_wedding else ("awaiting_payment" if payer == "owner" else "pending"),
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
         db.session.add(invitation)
         db.session.commit()
-        if payer == "owner":
+        if payer == "owner" and not unrestricted_wedding:
             payment = create_gateway_payment(
                 kind="owner_pays_invite",
                 amount=configured_price("STAKEHOLDER_PRICE"),
@@ -204,10 +205,13 @@ def join_invitation(token):
         flash("The wedding owner cannot join through their own invitation.", "error")
         return redirect(url_for("main.dashboard"))
 
-    if invitation.payer == "owner":
+    if invitation.payer == "owner" or current_user.has_full_feature_access:
         if invitation.status != "paid":
-            flash("The access payment is still pending.", "error")
-            return redirect(url_for("billing.accept_invitation", token=token))
+            if current_user.has_full_feature_access:
+                invitation.status = "paid"
+            else:
+                flash("The access payment is still pending.", "error")
+                return redirect(url_for("billing.accept_invitation", token=token))
         existing = db.session.scalar(
             select(WeddingMember).where(
                 WeddingMember.wedding_id == invitation.wedding_id,

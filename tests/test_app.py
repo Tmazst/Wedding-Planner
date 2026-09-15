@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app import create_app
 from app.extensions import db, socketio
-from app.models import ActivityEvent, Invitation, Payment, Wedding, WeddingMember
+from app.models import ActivityEvent, BudgetCategory, Invitation, Payment, User, Wedding, WeddingMember
 
 
 class TestConfig:
@@ -101,6 +101,73 @@ def test_free_limit_and_budget_totals(app, client):
     assert b"E8,500.00" in budget.data
     with app.app_context():
         assert len(db.session.scalar(select(Wedding)).categories) == 4
+
+
+def test_unrestricted_test_owner_bypasses_plan_and_invitation_payments(app, client):
+    create_owner_wedding(client)
+    with app.app_context():
+        owner = db.session.scalar(select(User).where(User.email == "owner@example.com"))
+        owner.has_test_access = True
+        db.session.commit()
+
+    for number in range(5):
+        response = client.post("/budget", data={
+            "name": f"Unlimited item {number}", "planned_amount": "1000",
+        })
+        assert response.headers["Location"].endswith("/budget")
+
+    invited = client.post("/team", data={
+        "invitee_name": "Tester", "role": "partner", "payer": "owner",
+    }, follow_redirects=True)
+    assert b"Access fees are bypassed" in invited.data
+    with app.app_context():
+        assert db.session.scalar(select(db.func.count()).select_from(BudgetCategory)) == 5
+        invitation = db.session.scalar(select(Invitation))
+        assert invitation.status == "paid"
+        assert db.session.scalar(select(Payment)) is None
+
+
+def test_admin_and_super_admin_have_full_feature_access(app):
+    with app.app_context():
+        administrator = User(
+            name="Administrator", email="admin@example.com", phone_number="26876000001",
+            is_admin=True,
+        )
+        administrator.set_password("adminpass")
+        super_admin = User(
+            name="Super Admin", email="super@example.com", phone_number="26876000002",
+            is_super_admin=True,
+        )
+        super_admin.set_password("superpass")
+        db.session.add_all([administrator, super_admin])
+        db.session.commit()
+        assert administrator.has_full_feature_access
+        assert super_admin.has_full_feature_access
+
+
+def test_only_two_unrestricted_test_account_slots(app, monkeypatch):
+    import super_admin_cli
+
+    with app.app_context():
+        actor = User(
+            name="Super Admin", email="super@example.com", phone_number="26876000000",
+            is_admin=True, is_super_admin=True,
+        )
+        actor.set_password("superpass")
+        db.session.add(actor)
+        db.session.commit()
+        monkeypatch.setattr(super_admin_cli, "_authenticate_super_admin", lambda: actor)
+
+        super_admin_cli.create_test_user(
+            "Test One", "test1@example.com", "26876000001", "testpass1"
+        )
+        super_admin_cli.create_test_user(
+            "Test Two", "test2@example.com", "26876000002", "testpass2"
+        )
+        with pytest.raises(super_admin_cli.SuperAdminError, match="slots are already in use"):
+            super_admin_cli.create_test_user(
+                "Test Three", "test3@example.com", "26876000003", "testpass3"
+            )
 
 
 

@@ -25,6 +25,8 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Live, wedding-specific team presence and planning activity updates
 - Persistent activity history for joined members and budget decisions
 - Page progress feedback for forms and internal navigation
+- Server-managed administrator roles with full feature access
+- Two revocable, unrestricted test-account slots
 
 ## Run locally
 
@@ -53,6 +55,28 @@ The initial Alembic migration is included. For later model changes:
 flask --app run db migrate -m "Describe the change"
 flask --app run db upgrade
 ```
+
+## Super admin and test accounts
+
+Administrator privileges are managed only from the server CLI. After applying
+the migration, create the first super admin:
+
+```bash
+python super_admin_cli.py bootstrap --name "UMSHADO Admin" --email admin@example.com --phone 26876123456
+```
+
+Create the two unrestricted test accounts by running the following command
+twice with the actual tester details:
+
+```bash
+python super_admin_cli.py create-test-user --name "Test Couple 1" --email test1@example.com --phone 26876000001
+python super_admin_cli.py create-test-user --name "Test Couple 2" --email test2@example.com --phone 26876000002
+```
+
+The CLI prompts for passwords and re-verifies the super admin before privileged
+changes. Use `python super_admin_cli.py --help` for role, test-access, password
+reset and account-listing commands. Super admins, administrators and the two
+test accounts can use all package-controlled features without payment records.
 
 ## Next small milestones
 
