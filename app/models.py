@@ -39,6 +39,7 @@ class Wedding(db.Model):
     categories = db.relationship("BudgetCategory", backref="wedding", lazy=True, cascade="all, delete-orphan")
     members = db.relationship("WeddingMember", backref="wedding", lazy=True, cascade="all, delete-orphan")
     invitations = db.relationship("Invitation", backref="wedding", lazy=True, cascade="all, delete-orphan")
+    activities = db.relationship("ActivityEvent", backref="wedding", lazy=True, cascade="all, delete-orphan")
 
     @property
     def estimated_total(self):
@@ -71,6 +72,17 @@ class Quotation(db.Model):
     is_selected = db.Column(db.Boolean, default=False, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("budget_category.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ActivityEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    wedding_id = db.Column(db.Integer, db.ForeignKey("wedding.id"), nullable=False, index=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
+    kind = db.Column(db.String(40), nullable=False, index=True)
+    message = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+    actor = db.relationship("User", foreign_keys=[actor_user_id])
 
 
 class WeddingMember(db.Model):

@@ -7,6 +7,7 @@ from sqlalchemy import select, update
 from mojapos_payments import MojaposConfig, MojaposPayments, PaymentHandler, PaymentRecord
 
 from .extensions import db
+from .activity import add_activity, publish_activity
 from .models import Invitation, Payment, WeddingMember
 from .payment_logging import payment_event
 
@@ -61,6 +62,7 @@ class WeddingPaymentHandler(PaymentHandler):
             db.session.rollback()
             return
 
+        activity = None
         if row.kind == "owner_upgrade":
             row.wedding.plan_tier = "standard"
             row.wedding.upgraded_at = datetime.now(timezone.utc)
@@ -76,7 +78,16 @@ class WeddingPaymentHandler(PaymentHandler):
                 invitation.accepted_by_user_id = row.user_id
                 invitation.accepted_at = datetime.now(timezone.utc)
                 self._ensure_member(invitation.wedding_id, row.user_id, invitation.role)
+                role_label = invitation.role.replace("_", " ").title()
+                activity = add_activity(
+                    wedding_id=invitation.wedding_id,
+                    actor_user_id=row.user_id,
+                    kind="member_joined",
+                    message=f"{role_label} {row.user.name} has joined the wedding project",
+                )
         db.session.commit()
+        if activity is not None:
+            publish_activity(activity)
         payment_event('callback_completed', payment_id=row.id, ref=row.external_ref_id, kind=row.kind)
 
     def on_payment_failed(self, record, webhook):

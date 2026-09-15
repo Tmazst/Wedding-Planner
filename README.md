@@ -21,6 +21,10 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Installable UMSHADO PWA with branded app icons
 - The PWA never caches private wedding pages or payment flows; planning requires a connection
 - Responsive, simple interface
+- Professional on-screen wedding report and downloadable PDF
+- Live, wedding-specific team presence and planning activity updates
+- Persistent activity history for joined members and budget decisions
+- Page progress feedback for forms and internal navigation
 
 ## Run locally
 
@@ -54,8 +58,7 @@ flask --app run db upgrade
 
 1. Wedding programme planning
 2. Invitation and guest list
-3. Clean report view and PDF export
-4. Selected information sharing through openWA
+3. Selected information sharing through openWA
 
 ## Pricing configuration
 
@@ -87,3 +90,34 @@ acceptance shows `mode=live`, an HTTP status, and gateway ID. The app reuses
 pending records to avoid double charging; confirm their state with MojaPOS before
 retrying. Do not share the log publicly. Before taking real payments, confirm
 webhook signature verification against MojaPOS's actual signing scheme.
+
+## Realtime production setup
+
+Apply the latest migration before restarting the app:
+
+```bash
+flask --app run db upgrade
+```
+
+For the current small VPS, run one threaded Gunicorn worker so WebSocket
+connections stay on the same process:
+
+```bash
+gunicorn --workers 1 --threads 100 --timeout 120 --bind 127.0.0.1:8000 run:app
+```
+
+Nginx must pass WebSocket upgrade headers for `/socket.io/`:
+
+```nginx
+location /socket.io/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header Host $host;
+}
+```
+
+The single-worker setup is recommended initially. If the app later runs across
+multiple processes or servers, configure `SOCKETIO_MESSAGE_QUEUE` with Redis
+and add sticky sessions at the load balancer before increasing worker count.

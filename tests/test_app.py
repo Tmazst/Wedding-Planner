@@ -5,8 +5,8 @@ from PIL import Image
 from sqlalchemy import select
 
 from app import create_app
-from app.extensions import db
-from app.models import Invitation, Payment, Wedding, WeddingMember
+from app.extensions import db, socketio
+from app.models import ActivityEvent, Invitation, Payment, Wedding, WeddingMember
 
 
 class TestConfig:
@@ -112,6 +112,49 @@ def test_large_amounts_use_grouping_in_summaries(app, client):
         db.session.commit()
     assert b"E1,250,000.00" in client.get("/dashboard").data
     assert b"E1,250,000.00" in client.get("/budget").data
+
+
+def test_report_view_and_downloadable_pdf(app, client):
+    create_owner_wedding(client)
+    client.post("/budget", data={"name": "Photography", "planned_amount": "12000"})
+    client.post("/budget/1/quotes", data={
+        "vendor_name": "Lens Studio", "amount": "10500", "contact": "76123456",
+        "notes": "Includes photography and a short highlights video.",
+    })
+    client.post("/quotes/1/select")
+
+    report = client.get("/report")
+    assert report.status_code == 200
+    assert b"Budget and selected vendors" in report.data
+    assert b"Lens Studio" in report.data
+    assert b"E10,500.00" in report.data
+
+    pdf = client.get("/report.pdf")
+    assert pdf.status_code == 200
+    assert pdf.mimetype == "application/pdf"
+    assert pdf.data.startswith(b"%PDF")
+    assert "attachment" in pdf.headers["Content-Disposition"]
+
+
+def test_quotation_activity_is_persisted_and_published_live(app, client):
+    create_owner_wedding(client)
+    client.post("/budget", data={"name": "Photography", "planned_amount": "12000"})
+    realtime = socketio.test_client(app, flask_test_client=client, namespace="/planning")
+    assert realtime.is_connected("/planning")
+    realtime.get_received("/planning")
+
+    client.post("/budget/1/quotes", data={"vendor_name": "Lens Studio", "amount": "10500"})
+
+    with app.app_context():
+        activity = db.session.scalars(
+            select(ActivityEvent).where(ActivityEvent.kind == "quotation_added")
+        ).one()
+        assert "Lens Studio" in activity.message
+    received = realtime.get_received("/planning")
+    live_updates = [item for item in received if item["name"] == "activity:new"]
+    assert live_updates
+    assert "Lens Studio" in live_updates[0]["args"][0]["message"]
+    realtime.disconnect(namespace="/planning")
 
 
 def test_standard_upgrade_is_exactly_e40(app, client):

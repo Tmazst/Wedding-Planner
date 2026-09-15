@@ -1,15 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 from pathlib import Path
 import secrets
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import select
+from werkzeug.utils import secure_filename
 
+from .activity import add_activity, publish_activity
 from .extensions import db
-from .models import BudgetCategory, Invitation, Payment, Quotation, User, Wedding, WeddingMember
+from .models import ActivityEvent, BudgetCategory, Invitation, Payment, Quotation, User, Wedding, WeddingMember
 
 
 bp = Blueprint("main", __name__)
@@ -46,6 +49,33 @@ def normalize_phone(value):
 def invitation_redirect():
     token = request.form.get("invite_token") or request.args.get("invite") or session.pop("invite_token", None)
     return redirect(url_for("billing.accept_invitation", token=token)) if token else redirect(url_for("main.dashboard"))
+
+
+def report_context(wedding):
+    planned_total = sum((category.planned_amount for category in wedding.categories), start=Decimal("0"))
+    selected_total = sum(
+        (category.selected_quote.amount for category in wedding.categories if category.selected_quote),
+        start=Decimal("0"),
+    )
+    members = [
+        {"name": wedding.owner.name, "role": "Couple / Project owner", "email": wedding.owner.email}
+    ]
+    members.extend(
+        {
+            "name": membership.user.name,
+            "role": membership.role.replace("_", " ").title(),
+            "email": membership.user.email,
+        }
+        for membership in wedding.members
+    )
+    return {
+        "wedding": wedding,
+        "planned_total": planned_total,
+        "selected_total": selected_total,
+        "remaining": wedding.budget_target - selected_total,
+        "members": members,
+        "generated_at": datetime.now(timezone.utc),
+    }
 
 
 @bp.route("/")
@@ -262,12 +292,48 @@ def dashboard():
     quote_count = sum(len(category.quotations) for category in wedding.categories)
     selected_total = sum((category.selected_amount for category in wedding.categories), start=Decimal("0"))
     remaining = wedding.budget_target - selected_total
+    recent_activity = db.session.scalars(
+        select(ActivityEvent)
+        .where(ActivityEvent.wedding_id == wedding.id)
+        .order_by(ActivityEvent.created_at.desc())
+        .limit(15)
+    ).all()
     return render_template(
         "dashboard.html", wedding=wedding, quote_count=quote_count,
         selected_total=selected_total, remaining=remaining,
         owner_price=Decimal(current_app.config["OWNER_PLAN_PRICE"]),
         stakeholder_price=Decimal(current_app.config["STAKEHOLDER_PRICE"]),
         is_owner=wedding.owner_id == current_user.id,
+        recent_activity=recent_activity,
+    )
+
+
+@bp.get("/report")
+@login_required
+def wedding_report():
+    wedding = current_wedding()
+    if wedding is None:
+        return redirect(url_for("main.setup_wedding"))
+    return render_template("wedding/report.html", **report_context(wedding))
+
+
+@bp.get("/report.pdf")
+@login_required
+def wedding_report_pdf():
+    wedding = current_wedding()
+    if wedding is None:
+        return redirect(url_for("main.setup_wedding"))
+    from .reporting import build_wedding_report
+
+    document = BytesIO()
+    build_wedding_report(document, **report_context(wedding))
+    document.seek(0)
+    safe_title = secure_filename(wedding.title).lower() or "wedding"
+    return send_file(
+        document,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"{safe_title}-wedding-report.pdf",
     )
 
 
@@ -289,7 +355,14 @@ def budget():
                 planned_amount=money(request.form.get("planned_amount")),
                 wedding_id=wedding.id,
             ))
+            activity = add_activity(
+                wedding_id=wedding.id,
+                actor_user_id=current_user.id,
+                kind="budget_item_added",
+                message=f"{current_user.name} added {name} to the wedding budget",
+            )
             db.session.commit()
+            publish_activity(activity)
             flash("Budget item added.", "success")
         else:
             flash("Enter a name for the budget item.", "error")
@@ -320,14 +393,22 @@ def quotations(category_id):
         if not vendor_name or amount <= 0:
             flash("Enter a vendor and a valid quotation amount.", "error")
         else:
-            db.session.add(Quotation(
+            quote = Quotation(
                 vendor_name=vendor_name,
                 amount=amount,
                 contact=request.form.get("contact", "").strip() or None,
                 notes=request.form.get("notes", "").strip() or None,
                 category_id=category.id,
-            ))
+            )
+            db.session.add(quote)
+            activity = add_activity(
+                wedding_id=wedding.id,
+                actor_user_id=current_user.id,
+                kind="quotation_added",
+                message=f"{current_user.name} added a {category.name} quotation from {vendor_name}",
+            )
             db.session.commit()
+            publish_activity(activity)
             flash("Quotation saved.", "success")
             return redirect(url_for("main.quotations", category_id=category.id))
     return render_template("budget/quotations.html", wedding=wedding, category=category)
@@ -342,6 +423,13 @@ def select_quote(quote_id):
         return ("Not found", 404)
     for item in quote.category.quotations:
         item.is_selected = item.id == quote.id
+    activity = add_activity(
+        wedding_id=wedding.id,
+        actor_user_id=current_user.id,
+        kind="quotation_selected",
+        message=f"{current_user.name} selected {quote.vendor_name} for {quote.category.name}",
+    )
     db.session.commit()
+    publish_activity(activity)
     flash(f"{quote.vendor_name} selected for {quote.category.name}.", "success")
     return redirect(url_for("main.quotations", category_id=quote.category_id))

@@ -27,4 +27,18 @@
   <div><p class="eyebrow">Financial planning</p><h2>Compare vendor quotations</h2><p>Add categories such as venue, catering, attire, photography and décor, then collect prices before deciding.</p></div>
   <a class="button primary" href="{{ url_for('main.budget') }}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Open budget</a>
 </section>
+<section class="card live-panel" id="live-planning-panel">
+  <div class="live-panel-heading">
+    <div><p class="eyebrow">Live planning updates</p><h2>Your wedding team</h2></div>
+    <span class="connection-status" id="connection-status"><span aria-hidden="true"></span> Connecting…</span>
+  </div>
+  <div class="online-team" id="online-team" aria-live="polite"><span class="muted">Checking who is online…</span></div>
+  <ol class="activity-feed" id="activity-feed" aria-live="polite">
+    {% for activity in recent_activity %}
+      <li data-activity-id="{{ activity.id }}"><span class="activity-icon" aria-hidden="true"><i class="fa-solid {{ 'fa-file-invoice-dollar' if activity.kind in ['quotation_added', 'quotation_selected'] else ('fa-user-check' if activity.kind == 'member_joined' else 'fa-list-check') }}"></i></span><div><strong>{{ activity.message }}</strong><time datetime="{{ activity.created_at.isoformat() }}">{{ activity.created_at.strftime('%d %b, %H:%M') }}</time></div></li>
+    {% else %}
+      <li class="activity-empty"><div><strong>No team activity yet</strong><span>New quotations and team members will appear here instantly.</span></div></li>
+    {% endfor %}
+  </ol>
+</section>
 {% endblock %}
