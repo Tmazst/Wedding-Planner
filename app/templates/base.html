@@ -24,6 +24,7 @@
       <nav aria-label="Main navigation">
         <a href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-house" aria-hidden="true"></i> Overview</a>
         <a href="{{ url_for('main.budget') }}"><i class="fa-solid fa-wallet" aria-hidden="true"></i> Budget</a>
+        <a href="{{ url_for('main.wedding_report') }}"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Report</a>
         <a href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> Pricing</a>
         <a href="{{ url_for('main.account') }}"><i class="fa-solid fa-circle-user" aria-hidden="true"></i> Account</a>
         <form action="{{ url_for('main.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link-button"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</button></form>
@@ -40,6 +41,9 @@
     <p>© {{ current_year }} UMSHADO. All rights reserved.</p>
     <p>Powered by TechX</p>
   </footer>
+  <div class="page-loader" id="page-loader" role="status" aria-live="polite" aria-label="Loading" hidden>
+    <span class="page-loader-bar"></span><span class="page-loader-label">Please wait…</span>
+  </div>
   <aside class="install-prompt" id="install-prompt" role="dialog" aria-labelledby="install-title" aria-describedby="install-description" hidden>
     <button class="install-close" id="install-close" type="button" aria-label="Close install prompt"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="" aria-hidden="true">
@@ -47,5 +51,10 @@
     <button class="button primary" id="install-button" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install app</button>
   </aside>
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/navigation-loader.js') }}" defer></script>
+  {% if current_user.is_authenticated %}
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/live-activity.js') }}" defer></script>
+  {% endif %}
 </body>
 </html>

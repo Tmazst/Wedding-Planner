@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Wedding report · {{ wedding.title }}{% endblock %}
+{% block content %}
+<section class="report-toolbar">
+  <a class="back-link" href="{{ url_for('main.dashboard') }}">← Overview</a>
+  <div class="button-row">
+    <button class="button secondary" type="button" data-no-loader onclick="window.print()"><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
+    <a class="button primary" href="{{ url_for('main.wedding_report_pdf') }}" download data-no-loader><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Download PDF</a>
+  </div>
+</section>
+
+<article class="report-document">
+  <header class="report-header">
+    <p class="report-kicker">Wedding plan</p>
+    <h1>{{ wedding.title }}</h1>
+    <p>{{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }} · {{ wedding.location or 'Location not set' }}</p>
+  </header>
+
+  <section class="report-summary" aria-label="Financial summary">
+    <div><span>Total budget</span><strong>E{{ wedding.budget_target|moneyfmt(2) }}</strong></div>
+    <div><span>Planned items</span><strong>E{{ planned_total|moneyfmt(2) }}</strong></div>
+    <div><span>Selected quotes</span><strong>E{{ selected_total|moneyfmt(2) }}</strong></div>
+    <div><span>{{ 'Over budget' if remaining < 0 else 'Remaining' }}</span><strong>E{{ remaining|abs|moneyfmt(2) }}</strong></div>
+  </section>
+
+  <section class="report-section">
+    <h2>Budget and selected vendors</h2>
+    <div class="table-scroll"><table><thead><tr><th>Item</th><th>Planned</th><th>Selected vendor</th><th>Selected amount</th><th>Status</th></tr></thead><tbody>
+      {% for category in wedding.categories %}<tr><td>{{ category.name }}</td><td>E{{ category.planned_amount|moneyfmt(2) }}</td><td>{{ category.selected_quote.vendor_name if category.selected_quote else '—' }}</td><td>{% if category.selected_quote %}E{{ category.selected_quote.amount|moneyfmt(2) }}{% else %}—{% endif %}</td><td>{{ 'Confirmed' if category.selected_quote else 'Decision pending' }}</td></tr>
+      {% else %}<tr><td colspan="5">No budget items have been added.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  {% set selected_categories = wedding.categories|selectattr('selected_quote')|list %}
+  {% if selected_categories %}<section class="report-section"><h2>Vendor contacts and notes</h2><div class="report-vendors">
+    {% for category in selected_categories %}<div><strong>{{ category.name }}: {{ category.selected_quote.vendor_name }}</strong>{% if category.selected_quote.contact %}<span>{{ category.selected_quote.contact }}</span>{% endif %}{% if category.selected_quote.notes %}<p>{{ category.selected_quote.notes }}</p>{% endif %}</div>{% endfor %}
+  </div></section>{% endif %}
+
+  <section class="report-section">
+    <h2>Planning team</h2>
+    <div class="table-scroll"><table><thead><tr><th>Name</th><th>Responsibility</th><th>Email</th></tr></thead><tbody>
+      {% for member in members %}<tr><td>{{ member.name }}</td><td>{{ member.role }}</td><td>{{ member.email }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <footer class="report-meta">Generated {{ generated_at.strftime('%d %B %Y at %H:%M UTC') }} · UMSHADO Wedding Planner</footer>
+</article>
+{% endblock %}

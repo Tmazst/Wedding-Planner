@@ -2,6 +2,9 @@ Flask==3.1.2
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.1.0
 Flask-Login==0.6.3
+Flask-SocketIO==5.5.1
 python-dotenv==1.1.1
 requests==2.32.5
 Pillow==11.3.0
+reportlab==4.4.3
+simple-websocket==1.1.0

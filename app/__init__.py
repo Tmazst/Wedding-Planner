@@ -7,7 +7,7 @@ from decimal import Decimal
 from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 
 from config import Config
-from .extensions import db, login_manager, migrate
+from .extensions import db, login_manager, migrate, socketio
 
 
 def create_app(config_class=Config):
@@ -25,6 +25,11 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    socketio.init_app(
+        app,
+        message_queue=app.config.get("SOCKETIO_MESSAGE_QUEUE"),
+        cors_allowed_origins=app.config.get("SOCKETIO_CORS_ALLOWED_ORIGINS"),
+    )
 
     @app.get("/manifest.webmanifest")
     def web_manifest():
@@ -63,8 +68,7 @@ def create_app(config_class=Config):
         supplied = request.form.get("csrf_token", "")
         if not expected or not hmac.compare_digest(expected, supplied):
             if request.endpoint in {"main.login", "main.register"}:
-                # flash("Your sign-in form expired. Please try again.", "error")
-                
+                flash("Your sign-in form expired. Please try again.", "error")
                 return redirect(url_for(request.endpoint, invite=request.args.get("invite", "")), code=303)
             abort(400, description="Invalid or missing form token.")
         return None
@@ -89,6 +93,10 @@ def create_app(config_class=Config):
 
     from .routes import bp
     app.register_blueprint(bp)
+
+    # Importing registers the authenticated Socket.IO event handlers.
+    from . import realtime
+    realtime.register_realtime_handlers()
 
     from .billing import bp as billing_bp
     app.register_blueprint(billing_bp)

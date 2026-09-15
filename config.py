@@ -24,3 +24,6 @@ class Config:
     CSRF_PROTECT = True
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"
+    # Set to redis://127.0.0.1:6379/0 if realtime events must cross processes.
+    SOCKETIO_MESSAGE_QUEUE = os.getenv("SOCKETIO_MESSAGE_QUEUE") or None
+    SOCKETIO_CORS_ALLOWED_ORIGINS = None
