@@ -346,7 +346,7 @@ def budget():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         free_limit = current_app.config["FREE_BUDGET_ITEM_LIMIT"]
-        if wedding.plan_tier == "free" and len(wedding.categories) >= free_limit:
+        if not wedding.has_full_feature_access and len(wedding.categories) >= free_limit:
             flash(f"The Free plan includes {free_limit} budget items. Upgrade to add more.", "error")
             return redirect(url_for("billing.pricing"))
         if name:

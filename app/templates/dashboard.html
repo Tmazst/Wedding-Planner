@@ -8,11 +8,11 @@
       {% else %}<div class="couple-photo placeholder" aria-label="No couple photo"><i class="fa-solid fa-heart" aria-hidden="true"></i></div>{% endif %}
       {% if is_owner %}<button class="photo-edit" type="button" onclick="document.getElementById('photo-upload').click()" aria-label="Change couple photo"><i class="fa-solid fa-camera" aria-hidden="true"></i></button>{% endif %}
     </div>
-    <div><p class="eyebrow">Wedding overview · {{ wedding.plan_tier|title }} plan</p><h1>{{ wedding.title }}</h1><p><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }}{% if wedding.location %} · <i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ wedding.location }}{% endif %}</p></div>
+    <div><p class="eyebrow">Wedding overview · {{ 'Full access' if wedding.has_full_feature_access else 'Free plan' }}</p><h1>{{ wedding.title }}</h1><p><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ wedding.wedding_date.strftime('%d %B %Y') if wedding.wedding_date else 'Date not set' }}{% if wedding.location %} · <i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ wedding.location }}{% endif %}</p></div>
   </div>
   {% if is_owner %}<div class="heading-actions"><form class="photo-form" method="post" action="{{ url_for('main.upload_wedding_photo') }}" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input id="photo-upload" type="file" name="profile_image" accept="image/jpeg,image/png,image/webp" onchange="this.form.submit()"></form><a class="button secondary" href="{{ url_for('main.setup_wedding') }}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit details</a></div>{% endif %}
 </section>
-{% if is_owner and wedding.plan_tier == 'free' %}
+{% if is_owner and not wedding.has_full_feature_access %}
 <section class="card upgrade-strip"><div><strong>Ready to plan together?</strong><p>Upgrade for E{{ owner_price|moneyfmt(0) }} to unlock unlimited budget items and stakeholder invitations.</p></div><a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> Upgrade</a></section><br>
 {% elif is_owner %}
 <section class="card upgrade-strip"><div><strong>Your team</strong><p>Invite your partner, matron of honour, family or trusted friends for E{{ stakeholder_price|moneyfmt(0) }} each.</p></div><a class="button primary" href="{{ url_for('billing.team') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Manage invitations</a></section><br>

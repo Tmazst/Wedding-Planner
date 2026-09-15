@@ -12,10 +12,9 @@
   {% elif invitation.status == 'awaiting_payment' %}<p class="plan-notice">The wedding owner’s E{{ stakeholder_price|moneyfmt(0) }} payment is still pending.</p>
   {% elif invitation.status == 'accepted' %}<p class="plan-notice">This invitation has already been used.</p>
   {% else %}
-    <p><strong>{{ 'Your access has already been paid for.' if invitation.payer == 'owner' else ('Your stakeholder access fee is E' ~ (stakeholder_price|moneyfmt(0)) ~ '.') }}</strong></p>
-    <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' else 'Pay with MoMo and join' }}</button></form>
+    <p><strong>{{ 'Your access is included.' if invitation.payer == 'owner' or current_user.has_full_feature_access else ('Your stakeholder access fee is E' ~ (stakeholder_price|moneyfmt(0)) ~ '.') }}</strong></p>
+    <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' or current_user.has_full_feature_access else 'Pay with MoMo and join' }}</button></form>
   {% endif %}
 {% endif %}
 </section>
 {% endblock %}
-

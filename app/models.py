@@ -12,6 +12,9 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     phone_number = db.Column(db.String(20), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    is_super_admin = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    has_test_access = db.Column(db.Boolean, default=False, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     weddings = db.relationship("Wedding", backref="owner", lazy=True, cascade="all, delete-orphan")
     memberships = db.relationship("WeddingMember", backref="user", lazy=True, cascade="all, delete-orphan")
@@ -21,6 +24,11 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def has_full_feature_access(self):
+        """Whether this account bypasses normal package and payment limits."""
+        return self.is_admin or self.is_super_admin or self.has_test_access
 
 
 class Wedding(db.Model):
@@ -44,6 +52,10 @@ class Wedding(db.Model):
     @property
     def estimated_total(self):
         return sum((category.selected_amount for category in self.categories), start=0)
+
+    @property
+    def has_full_feature_access(self):
+        return self.plan_tier == "standard" or self.owner.has_full_feature_access
 
 
 class BudgetCategory(db.Model):
