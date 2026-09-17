@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app import create_app
 from app.extensions import db, socketio
-from app.models import ActivityEvent, BudgetCategory, Invitation, Payment, User, Wedding, WeddingMember
+from app.models import AppVisit, ActivityEvent, BudgetCategory, Invitation, Payment, User, Wedding, WeddingMember
 
 
 class TestConfig:
@@ -50,6 +50,40 @@ def create_owner_wedding(client):
         "partner_one": "Lindiwe", "partner_two": "Sibusiso",
         "budget_target": "80000", "location": "Manzini",
     })
+
+
+def test_visit_tracking_counts_each_browser_session_once(app):
+    first_browser = app.test_client()
+    second_browser = app.test_client()
+
+    first_browser.get("/login")
+    first_browser.get("/login")
+    second_browser.get("/login")
+
+    with app.app_context():
+        assert db.session.scalar(select(db.func.count()).select_from(AppVisit)) == 2
+
+
+def test_admin_dashboard_is_private_and_shows_performance(app, client):
+    register(client, "Admin", "admin@example.com", "76000001")
+    assert client.get("/admin/").status_code == 403
+
+    with app.app_context():
+        user = db.session.scalar(select(User).where(User.email == "admin@example.com"))
+        user.is_admin = True
+        db.session.commit()
+
+    dashboard = client.get("/admin/")
+    assert dashboard.status_code == 200
+    assert b"App performance" in dashboard.data
+    assert b"Registered users" in dashboard.data
+    assert b"admin@example.com" in dashboard.data
+
+
+def test_whatsapp_support_link_is_available_on_public_pages(client):
+    page = client.get("/login")
+    assert b"https://wa.me/2679651471" in page.data
+    assert b"Contact UMSHADO support on WhatsApp" in page.data
 
 
 def test_stale_login_form_recovers_without_disabling_csrf(monkeypatch, tmp_path):

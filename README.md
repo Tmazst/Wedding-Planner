@@ -27,6 +27,8 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Page progress feedback for forms and internal navigation
 - Server-managed administrator roles with full feature access
 - Two revocable, unrestricted test-account slots
+- Private admin dashboard with session visits and registration totals
+- Floating WhatsApp support link on every page
 
 ## Run locally
 
