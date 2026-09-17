@@ -26,6 +26,7 @@
         <a href="{{ url_for('main.budget') }}"><i class="fa-solid fa-wallet" aria-hidden="true"></i> Budget</a>
         <a href="{{ url_for('main.wedding_report') }}"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Report</a>
         <a href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> Pricing</a>
+        {% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.dashboard') }}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Admin</a>{% endif %}
         <a href="{{ url_for('main.account') }}"><i class="fa-solid fa-circle-user" aria-hidden="true"></i> Account</a>
         <form action="{{ url_for('main.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link-button"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</button></form>
       </nav>
@@ -50,6 +51,9 @@
     <div><strong id="install-title">Keep UMSHADO close</strong><p id="install-description">Install the wedding planner for quick access from your phone.</p><p class="ios-install-help" id="ios-install-help" hidden>Tap <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Share, then choose <strong>Add to Home Screen</strong>.</p></div>
     <button class="button primary" id="install-button" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install app</button>
   </aside>
+  <a class="whatsapp-support" href="https://wa.me/2679651471?text=Hello%20UMSHADO%20Support%2C%20I%20need%20help%20with%20the%20wedding%20planner." target="_blank" rel="noopener noreferrer" aria-label="Contact UMSHADO support on WhatsApp" title="WhatsApp support">
+    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Support</span>
+  </a>
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/navigation-loader.js') }}" defer></script>
   {% if current_user.is_authenticated %}
