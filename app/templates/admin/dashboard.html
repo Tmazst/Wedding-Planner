@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Admin dashboard · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div><p class="eyebrow">Administration</p><h1>App performance</h1><p>A simple view of visits and registrations across UMSHADO.</p></div>
+  <span class="current-plan"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> {{ 'Super admin' if current_user.is_super_admin else 'Administrator' }}</span>
+</section>
+
+<section class="stats-grid admin-stats">
+  <article class="stat"><span>Total visits</span><strong>{{ total_visits|int }}</strong><small>{{ visits_today }} today</small></article>
+  <article class="stat"><span>Registered users</span><strong>{{ total_users|int }}</strong><small>{{ users_today }} today</small></article>
+  <article class="stat"><span>Wedding projects</span><strong>{{ total_weddings|int }}</strong><small>Created plans</small></article>
+  <article class="stat"><span>Registration rate</span><strong>{{ ((total_users / total_visits * 100) if total_visits else 0)|round(1) }}%</strong><small>Users ÷ visits</small></article>
+</section>
+
+<section class="admin-grid">
+  <article class="card table-card">
+    <div class="card-heading"><div><p class="eyebrow">Last seven days</p><h2>Visits and registrations</h2></div></div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Date</th><th>Visits</th><th>New users</th></tr></thead>
+      <tbody>{% for day in daily_activity %}<tr><td>{{ day.date.strftime('%a, %d %b') }}</td><td><strong>{{ day.visits }}</strong></td><td>{{ day.registrations }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </article>
+
+  <article class="card table-card">
+    <div class="card-heading"><div><p class="eyebrow">Latest accounts</p><h2>Recent registrations</h2></div></div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>User</th><th>Access</th><th>Joined</th></tr></thead>
+      <tbody>
+      {% for user in recent_users %}<tr><td><strong>{{ user.name }}</strong><small>{{ user.email }}</small></td><td>{{ 'Super admin' if user.is_super_admin else ('Admin' if user.is_admin else ('Test' if user.has_test_access else 'User')) }}</td><td>{{ user.created_at.strftime('%d %b %Y') }}</td></tr>
+      {% else %}<tr><td colspan="3">No registrations yet.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </article>
+</section>
+{% endblock %}

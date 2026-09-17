@@ -31,6 +31,10 @@ def create_app(config_class=Config):
         cors_allowed_origins=app.config.get("SOCKETIO_CORS_ALLOWED_ORIGINS"),
     )
 
+    from .admin import record_session_visit
+
+    app.before_request(record_session_visit)
+
     @app.get("/manifest.webmanifest")
     def web_manifest():
         return send_from_directory(
@@ -100,6 +104,9 @@ def create_app(config_class=Config):
 
     from .billing import bp as billing_bp
     app.register_blueprint(billing_bp)
+
+    from .admin import bp as admin_bp
+    app.register_blueprint(admin_bp)
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)

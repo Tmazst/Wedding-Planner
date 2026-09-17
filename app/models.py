@@ -31,6 +31,18 @@ class User(UserMixin, db.Model):
         return self.is_admin or self.is_super_admin or self.has_test_access
 
 
+class AppVisit(db.Model):
+    """One privacy-friendly visit recorded per browser session."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+
+
 class Wedding(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(160), nullable=False)
