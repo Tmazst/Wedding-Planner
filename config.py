@@ -33,6 +33,11 @@ class Config:
     OWNER_PLAN_PRICE = os.getenv("OWNER_PLAN_PRICE", "60.00")
     STAKEHOLDER_PRICE = os.getenv("STAKEHOLDER_PRICE", "30.00")
     PAYMENT_CURRENCY = os.getenv("MOJAPOS_CURRENCY", "SZL")
+    MOJAPOS_SUPPORTED_COUNTRIES = tuple(
+        country.strip().upper()
+        for country in os.getenv("MOJAPOS_SUPPORTED_COUNTRIES", "SZ").split(",")
+        if country.strip()
+    )
     MOJAPOS_MOCK_AUTO_COMPLETE = os.getenv(
         "MOJAPOS_MOCK_AUTO_COMPLETE", "false"
     ).lower() in {"1", "true", "yes", "on"}

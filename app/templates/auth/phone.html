@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "components/phone_fields.html" import phone_fields %}
 {% block title %}Payment phone number{% endblock %}
 {% block content %}
-<div class="narrow"><section class="page-heading"><p class="eyebrow">Payment details</p><h1>Add your MoMo number</h1><p>This number is used only when you start a MojaPOS payment.</p></section>
-<form class="card form-card" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next_step }}"><label>MTN MoMo phone number<input type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="7612 3456" required autocomplete="tel"></label><button class="button primary" type="submit">Save phone number</button></form></div>
+<div class="narrow"><section class="page-heading"><p class="eyebrow">Contact details</p><h1>Add your mobile number</h1><p>International numbers are accepted for your account. MojaPOS payments are currently available only for supported countries.</p></section>
+<form class="card form-card" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ next_step }}">{{ phone_fields(countries, selected_country, phone_value) }}<button class="button primary" type="submit">Save phone number</button></form></div>
 {% endblock %}

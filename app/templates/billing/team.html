@@ -3,13 +3,13 @@
 {% block content %}
 <section class="page-heading"><p class="eyebrow">Full access</p><h1>Wedding team</h1><p>Invite the people helping you plan.{% if not wedding.owner.has_full_feature_access %} Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.{% else %} Access fees are bypassed for this unrestricted account.{% endif %}</p></section>
 <section class="split-layout">
-  <form class="card form-card compact" method="post"{% if not wedding.owner.has_full_feature_access %} data-payment-confirm data-payment-owner-only data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_number or '' }}"{% endif %}>
+  <form class="card form-card compact" method="post"{% if not wedding.owner.has_full_feature_access %} data-payment-confirm data-payment-owner-only data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_display }}"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="payment_confirmed" value="">
     <h2>Create invitation</h2>
     <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
     <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
-    {% if wedding.owner.has_full_feature_access %}<input type="hidden" name="payer" value="owner"><p class="plan-notice"><strong>Included:</strong> This invitation will not require payment.</p>{% else %}<fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"> I will pay for them now</label></fieldset>{% endif %}
+    {% if wedding.owner.has_full_feature_access %}<input type="hidden" name="payer" value="owner"><p class="plan-notice"><strong>Included:</strong> This invitation will not require payment.</p>{% else %}<fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"{% if not payment_country_supported %} disabled{% endif %}> I will pay for them now</label>{% if not payment_country_supported %}<small class="muted">Owner payment currently requires an Eswatini mobile number.</small>{% endif %}</fieldset>{% endif %}
     <button class="button primary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Create invitation</button>
   </form>
   <div class="team-list">

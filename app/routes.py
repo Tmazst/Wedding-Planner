@@ -14,6 +14,7 @@ from werkzeug.utils import secure_filename
 from .activity import add_activity, publish_activity
 from .extensions import db
 from .models import ActivityEvent, BudgetCategory, Invitation, Payment, Quotation, User, Wedding, WeddingMember
+from .phone_numbers import country_options, normalize_phone
 
 
 bp = Blueprint("main", __name__)
@@ -36,15 +37,6 @@ def current_wedding():
         select(WeddingMember).where(WeddingMember.user_id == current_user.id).order_by(WeddingMember.joined_at)
     )
     return membership.wedding if membership else None
-
-
-def normalize_phone(value):
-    digits = "".join(character for character in (value or "") if character.isdigit())
-    if digits.startswith("0"):
-        digits = "268" + digits[1:]
-    elif len(digits) == 8:
-        digits = "268" + digits
-    return digits
 
 
 def invitation_redirect():
@@ -101,6 +93,7 @@ def account_export_payload(user):
             "name": user.name,
             "email": user.email,
             "phone_number": user.phone_number,
+            "phone_country": user.phone_country,
             "created_at": iso_value(user.created_at),
             "terms_accepted_at": iso_value(user.terms_accepted_at),
             "terms_version": user.terms_version,
@@ -204,13 +197,22 @@ def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
-        phone_number = normalize_phone(request.form.get("phone_number"))
+        phone_country = request.form.get("phone_country", "SZ")
+        try:
+            phone_number, phone_country = normalize_phone(
+                request.form.get("phone_number"), phone_country
+            )
+            phone_error = None
+        except ValueError as error:
+            phone_number, phone_error = None, str(error)
         password = request.form.get("password", "")
         accepted_terms = request.form.get("accept_terms") == "yes"
         if not accepted_terms:
             flash("You must agree to the Terms of Use and acknowledge the Privacy Notice.", "error")
-        elif not name or not email or not phone_number.startswith("268") or len(phone_number) != 11 or len(password) < 6:
-            flash("Enter your name, email, Eswatini phone number and a password of at least 6 characters.", "error")
+        elif phone_error:
+            flash(phone_error, "error")
+        elif not name or not email or len(password) < 6:
+            flash("Enter your name, email and a password of at least 6 characters.", "error")
         elif db.session.scalar(select(User).where(User.email == email)):
             flash("An account with that email already exists.", "error")
         elif db.session.scalar(select(User).where(User.phone_number == phone_number)):
@@ -220,6 +222,7 @@ def register():
                 name=name,
                 email=email,
                 phone_number=phone_number,
+                phone_country=phone_country,
                 terms_accepted_at=datetime.now(timezone.utc),
                 terms_version=current_app.config["TERMS_VERSION"],
                 privacy_version=current_app.config["PRIVACY_VERSION"],
@@ -231,7 +234,13 @@ def register():
             if request.form.get("invite_token"):
                 return invitation_redirect()
             return redirect(url_for("main.setup_wedding"))
-    return render_template("auth/register.html", invite_token=request.form.get("invite_token") or request.args.get("invite", ""))
+    return render_template(
+        "auth/register.html",
+        invite_token=request.form.get("invite_token") or request.args.get("invite", ""),
+        countries=country_options(),
+        selected_country=request.form.get("phone_country", "SZ"),
+        phone_value=request.form.get("phone_number", ""),
+    )
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -291,15 +300,20 @@ def setup_wedding():
 @login_required
 def account_phone():
     if request.method == "POST":
-        phone_number = normalize_phone(request.form.get("phone_number"))
-        if not phone_number.startswith("268") or len(phone_number) != 11:
-            flash("Enter a valid Eswatini mobile number.", "error")
+        phone_country = request.form.get("phone_country", "SZ")
+        try:
+            phone_number, phone_country = normalize_phone(
+                request.form.get("phone_number"), phone_country
+            )
+        except ValueError as error:
+            flash(str(error), "error")
         else:
             existing = db.session.scalar(select(User).where(User.phone_number == phone_number, User.id != current_user.id))
             if existing:
                 flash("That phone number is already linked to another account.", "error")
             else:
                 current_user.phone_number = phone_number
+                current_user.phone_country = phone_country
                 db.session.commit()
                 flash("Phone number saved.", "success")
                 destination = request.form.get("next")
@@ -308,7 +322,13 @@ def account_phone():
                 if destination and destination.startswith("invite:"):
                     return redirect(url_for("billing.accept_invitation", token=destination.split(":", 1)[1]))
                 return redirect(url_for("billing.pricing"))
-    return render_template("auth/phone.html", next_step=request.args.get("next", "pricing"))
+    return render_template(
+        "auth/phone.html",
+        next_step=request.form.get("next") or request.args.get("next", "pricing"),
+        countries=country_options(),
+        selected_country=request.form.get("phone_country", current_user.phone_country or "SZ"),
+        phone_value=request.form.get("phone_number", current_user.phone_display),
+    )
 
 
 @bp.route("/account", methods=["GET", "POST"])
@@ -318,11 +338,22 @@ def account():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
-        phone_number = normalize_phone(request.form.get("phone_number"))
+        phone_country = request.form.get("phone_country", current_user.phone_country or "SZ")
+        try:
+            phone_number, phone_country = normalize_phone(
+                request.form.get("phone_number"), phone_country
+            )
+            phone_error = None
+        except ValueError as error:
+            phone_number, phone_error = None, str(error)
         email_owner = db.session.scalar(select(User).where(User.email == email, User.id != current_user.id))
-        phone_owner = db.session.scalar(select(User).where(User.phone_number == phone_number, User.id != current_user.id))
-        if not name or not email or not phone_number.startswith("268") or len(phone_number) != 11:
-            flash("Enter your name, email and a valid Eswatini mobile number.", "error")
+        phone_owner = db.session.scalar(
+            select(User).where(User.phone_number == phone_number, User.id != current_user.id)
+        ) if phone_number else None
+        if phone_error:
+            flash(phone_error, "error")
+        elif not name or not email:
+            flash("Enter your name and email address.", "error")
         elif email_owner:
             flash("That email address is already in use.", "error")
         elif phone_owner:
@@ -331,6 +362,7 @@ def account():
             current_user.name = name
             current_user.email = email
             current_user.phone_number = phone_number
+            current_user.phone_country = phone_country
             db.session.commit()
             flash("Account details updated.", "success")
             return redirect(url_for("main.account"))
@@ -356,6 +388,9 @@ def account():
     return render_template(
         "account.html", wedding=wedding, payments=payments,
         membership=membership, access_invitation=access_invitation,
+        countries=country_options(),
+        selected_country=request.form.get("phone_country", current_user.phone_country or "SZ"),
+        phone_value=request.form.get("phone_number", current_user.phone_display),
     )
 
 
@@ -432,6 +467,7 @@ def delete_account():
     current_user.name = "Deleted user"
     current_user.email = f"deleted-{user_id}-{secrets.token_hex(8)}@invalid.umshado"
     current_user.phone_number = None
+    current_user.phone_country = "SZ"
     current_user.is_admin = False
     current_user.has_test_access = False
     current_user.deleted_at = datetime.now(timezone.utc)

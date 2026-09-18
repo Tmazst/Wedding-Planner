@@ -25,7 +25,7 @@ from sqlalchemy import select
 from app import create_app
 from app.extensions import db
 from app.models import User
-from app.routes import normalize_phone
+from app.phone_numbers import normalize_phone
 
 
 class SuperAdminError(Exception):
@@ -40,10 +40,13 @@ def _user_by_email(email):
 
 
 def _validated_phone(phone):
-    normalized = normalize_phone(phone)
-    if not normalized.startswith("268") or len(normalized) != 11:
+    try:
+        normalized, country = normalize_phone(phone, "SZ")
+    except ValueError as error:
+        raise SuperAdminError(str(error)) from error
+    if country != "SZ":
         raise SuperAdminError("Enter a valid Eswatini phone number.")
-    return normalized
+    return normalized, country
 
 
 def _prompt_password(label):
@@ -69,14 +72,17 @@ def _authenticate_super_admin():
 
 def _new_user(name, email, phone, password):
     email = email.strip().lower()
-    phone = _validated_phone(phone)
+    phone, phone_country = _validated_phone(phone)
     if not name.strip():
         raise SuperAdminError("Name is required.")
     if _user_by_email(email):
         raise SuperAdminError(f"Email already exists: {email}")
     if db.session.scalar(select(User).where(User.phone_number == phone)):
         raise SuperAdminError(f"Phone number already exists: {phone}")
-    user = User(name=name.strip(), email=email, phone_number=phone)
+    user = User(
+        name=name.strip(), email=email, phone_number=phone,
+        phone_country=phone_country,
+    )
     user.set_password(password)
     db.session.add(user)
     return user

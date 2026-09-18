@@ -20,6 +20,7 @@ class TestConfig:
     OWNER_PLAN_PRICE = "60.00"
     STAKEHOLDER_PRICE = "30.00"
     PAYMENT_CURRENCY = "SZL"
+    MOJAPOS_SUPPORTED_COUNTRIES = ("SZ",)
     MOJAPOS_MOCK_AUTO_COMPLETE = True
     ANALYTICS_ENABLED = False
     TERMS_VERSION = "2026-09-18"
@@ -46,9 +47,10 @@ def client(app):
     return app.test_client()
 
 
-def register(client, name, email, phone, invite_token=""):
+def register(client, name, email, phone, invite_token="", country="SZ"):
     return client.post("/register", data={
         "name": name, "email": email, "phone_number": phone,
+        "phone_country": country,
         "password": "secret1", "invite_token": invite_token, "accept_terms": "yes",
     })
 
@@ -173,6 +175,36 @@ def test_legal_pages_and_registration_consent_are_available(app, client):
         assert user.terms_accepted_at is not None
         assert user.terms_version == "2026-09-18"
         assert user.privacy_version == "2026-09-18"
+
+
+def test_international_phone_is_selected_validated_and_stored_in_e164(app, client):
+    signup = client.get("/register")
+    assert b"South Africa (+27)" in signup.data
+    assert b"Eswatini (+268)" in signup.data
+
+    response = register(
+        client, "South African Couple", "za@example.com", "082 123 4567",
+        country="ZA",
+    )
+    assert response.status_code == 302
+    with app.app_context():
+        user = db.session.scalar(select(User).where(User.email == "za@example.com"))
+        assert user.phone_country == "ZA"
+        assert user.phone_number == "+27821234567"
+        assert user.phone_display == "+27 82 123 4567"
+
+
+def test_phone_must_match_selected_country(app, client):
+    response = register(
+        client, "Wrong Country", "wrong-country@example.com", "+26876123456",
+        country="ZA",
+    )
+    assert response.status_code == 200
+    assert b"does not match the selected country" in response.data
+    with app.app_context():
+        assert db.session.scalar(
+            select(User).where(User.email == "wrong-country@example.com")
+        ) is None
 
 
 def test_stale_login_form_recovers_without_disabling_csrf(monkeypatch, tmp_path):
@@ -367,6 +399,19 @@ def test_payment_request_requires_explicit_confirmation(app, client):
         assert db.session.scalar(select(Payment)) is None
 
 
+def test_international_account_cannot_send_unsupported_mojapos_request(app, client):
+    register(client, "International Owner", "international@example.com", "0821234567", country="ZA")
+    client.post("/wedding/setup", data={
+        "partner_one": "Amahle", "partner_two": "Lethabo", "budget_target": "90000",
+    })
+    response = client.post(
+        "/billing/upgrade", data={"payment_confirmed": "yes"}, follow_redirects=True,
+    )
+    assert b"MojaPOS payments currently require an Eswatini mobile number" in response.data
+    with app.app_context():
+        assert db.session.scalar(select(Payment)) is None
+
+
 def test_owner_paid_invitation_adds_registered_stakeholder(app, client):
     create_owner_wedding(client)
     client.post("/billing/upgrade", data={"payment_confirmed": "yes"})
@@ -390,6 +435,29 @@ def test_owner_paid_invitation_adds_registered_stakeholder(app, client):
     with app.app_context():
         member = db.session.scalar(select(WeddingMember))
         assert member.role == "matron_of_honour"
+
+
+def test_owner_paid_invitation_allows_international_stakeholder(app, client):
+    create_owner_wedding(client)
+    client.post("/billing/upgrade", data={"payment_confirmed": "yes"})
+    client.post("/team", data={
+        "invitee_name": "Naledi", "role": "family_friend", "payer": "owner",
+        "payment_confirmed": "yes",
+    })
+    with app.app_context():
+        token = db.session.scalar(select(Invitation)).token
+
+    client.post("/logout")
+    register(
+        client, "Naledi", "naledi@example.com", "0821234567",
+        invite_token=token, country="ZA",
+    )
+    joined = client.post(f"/invite/{token}/join", follow_redirects=True)
+    assert b"Wedding overview" in joined.data
+    with app.app_context():
+        member = db.session.scalar(select(WeddingMember))
+        assert member.user.phone_country == "ZA"
+        assert member.user.phone_number == "+27821234567"
 
 
 def test_invitee_can_pay_their_own_e30_access(app, client):
@@ -425,7 +493,8 @@ def test_account_details_can_be_updated(app, client):
     with app.app_context():
         user = db.session.scalar(select(Wedding).where(Wedding.owner_id.is_not(None))).owner
         assert user.name == "Updated Owner"
-        assert user.phone_number == "26876456789"
+        assert user.phone_number == "+26876456789"
+        assert user.phone_country == "SZ"
 
 
 def test_owner_can_upload_couple_photo(app, client):
@@ -514,9 +583,11 @@ def test_live_mock_mode_and_payment_trace(app, client, monkeypatch):
     gateway = build_gateway()
     app.extensions["mojapos_payments"] = gateway
     calls = []
+    phones = []
 
     def fake_post(url, **kwargs):
         calls.append(kwargs["json"]["metadata"]["externalId"])
+        phones.append(kwargs["json"]["phoneNumber"])
         return SimpleNamespace(
             status_code=202, raise_for_status=lambda: None,
             json=lambda: {"transactionId": "gateway-live-123"},
@@ -526,6 +597,7 @@ def test_live_mock_mode_and_payment_trace(app, client, monkeypatch):
     response = client.post("/billing/upgrade", data={"payment_confirmed": "yes"}, follow_redirects=True)
     assert b"Approve the payment on your phone" in response.data
     assert len(calls) == 1
+    assert phones == ["26876123456"]
     with app.app_context():
         payment = db.session.scalar(select(Payment))
         assert payment.status == "pending"
