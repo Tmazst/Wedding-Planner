@@ -11,7 +11,7 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Multiple vendor quotations per category
 - Selected quotation tracking
 - Free plan with a configurable four-budget-item limit
-- E40 Standard project upgrade through MojaPOS / MTN MoMo
+- E60 Standard project upgrade through MojaPOS / MTN MoMo
 - E30 stakeholder access with owner-pays or invitee-pays choice
 - Private, expiring invitation links and shared project access
 - Live budget totals while quotations are added and selected
@@ -29,6 +29,9 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Two revocable, unrestricted test-account slots
 - Private admin dashboard with session visits and registration totals
 - Floating WhatsApp support link on every page
+- Privacy Notice and Terms acceptance recorded at registration
+- Authenticated couple-photo delivery, account export and privacy-preserving deletion
+- Explicit confirmation before every MoMo request
 
 ## Run locally
 
@@ -48,6 +51,25 @@ flask --app run run --debug
 ```
 
 Open `http://127.0.0.1:5000`.
+
+For local HTTP only, set `SESSION_COOKIE_SECURE=false` in `.env`. Keep it `true`
+on the HTTPS production site.
+
+## Production privacy maintenance
+
+Apply migrations after each deployment and run the retention cleanup once a
+day (for example from cron or a systemd timer):
+
+```bash
+flask --app run db upgrade
+flask --app run data-retention-cleanup
+```
+
+The cleanup removes old operational visits, analytics entries, payment log
+entries and expired unpaid invitations according to the retention-day values
+in `.env`. Couple photos are stored under `instance/uploads` and are delivered
+only through an authenticated route. On first startup after this update, the
+app moves existing couple photos out of the public static directory.
 
 ## First database migration
 
@@ -92,7 +114,7 @@ Pricing and free-tier limits are controlled from `.env`:
 
 ```ini
 FREE_BUDGET_ITEM_LIMIT=4
-OWNER_PLAN_PRICE=40.00
+OWNER_PLAN_PRICE=60.00
 STAKEHOLDER_PRICE=30.00
 ```
 

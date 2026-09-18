@@ -15,6 +15,10 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False, index=True)
     is_super_admin = db.Column(db.Boolean, default=False, nullable=False, index=True)
     has_test_access = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    terms_accepted_at = db.Column(db.DateTime, nullable=True)
+    terms_version = db.Column(db.String(20), nullable=True)
+    privacy_version = db.Column(db.String(20), nullable=True)
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     weddings = db.relationship("Wedding", backref="owner", lazy=True, cascade="all, delete-orphan")
     memberships = db.relationship("WeddingMember", backref="user", lazy=True, cascade="all, delete-orphan")
@@ -24,6 +28,10 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_active(self):
+        return self.deleted_at is None
 
     @property
     def has_full_feature_access(self):

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Review our terms · UMSHADO{% endblock %}
+{% block content %}
+<section class="auth-layout legal-accept-layout">
+  <div class="welcome-panel"><p class="eyebrow">A clear agreement</p><h1>Please review UMSHADO’s terms.</h1><p>We have added clear information about project access, payments and how private wedding information is handled.</p></div>
+  <form class="card form-card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>Continue to your wedding</h2>
+    <p>Read the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</p>
+    <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" required><span>I agree to the Terms of Use and acknowledge the Privacy Notice.</span></label>
+    <button class="button primary" type="submit"><i class="fa-solid fa-check" aria-hidden="true"></i> Agree and continue</button>
+  </form>
+</section>
+{% endblock %}

@@ -40,6 +40,7 @@
   </main>
   <footer class="footer">
     <p>© {{ current_year }} UMSHADO. All rights reserved.</p>
+    <p class="footer-links"><a href="{{ url_for('main.privacy') }}">Privacy Notice</a><span aria-hidden="true">·</span><a href="{{ url_for('main.terms') }}">Terms of Use</a></p>
     <p>Powered by TechX</p>
   </footer>
   <div class="page-loader" id="page-loader" role="status" aria-live="polite" aria-label="Loading" hidden>
@@ -55,10 +56,13 @@
     <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Support</span>
   </a>
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/ui-actions.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/payment-confirm.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/navigation-loader.js') }}" defer></script>
   {% if current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/live-activity.js') }}" defer></script>
   {% endif %}
+  {% block page_scripts %}{% endblock %}
 </body>
 </html>

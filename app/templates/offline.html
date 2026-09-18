@@ -9,7 +9,8 @@
 </head>
 <body>
   <main class="page-shell">
-    <section class="card payment-result"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" width="96" height="96" alt=""><p class="eyebrow">Connection paused</p><h1>You’re offline</h1><p>Your wedding information is protected. Reconnect to continue planning and saving changes.</p><button class="button primary" type="button" onclick="window.location.reload()">Try again</button></section>
+    <section class="card payment-result"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" width="96" height="96" alt=""><p class="eyebrow">Connection paused</p><h1>You’re offline</h1><p>Your wedding information is protected. Reconnect to continue planning and saving changes.</p><button class="button primary" type="button" data-reload>Try again</button></section>
   </main>
+  <script src="{{ url_for('static', filename='js/ui-actions.js') }}" defer></script>
 </body>
 </html>

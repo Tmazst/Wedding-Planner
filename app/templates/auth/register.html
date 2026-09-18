@@ -11,6 +11,7 @@
     <label>Email<input type="email" name="email" required autocomplete="email"></label>
     <label>MTN MoMo phone number<input type="tel" name="phone_number" placeholder="7612 3456" required autocomplete="tel"></label>
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
+    <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
     <button class="button primary" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create account</button>
     <p class="form-foot">Already registered? <a href="{{ url_for('main.login', invite=invite_token) }}">Log in</a></p>
   </form>

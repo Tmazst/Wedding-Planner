@@ -12,7 +12,7 @@
     <span class="plan-label">Standard</span><h2>E{{ owner_price|moneyfmt(0) }}</h2><p>One-time project upgrade for the wedding creator.</p>
     <ul><li>Unlimited budget items</li><li>Invite stakeholders to the same wedding</li><li>No stakeholder invitation limit</li><li>Each stakeholder access: E{{ stakeholder_price|moneyfmt(0) }}</li></ul>
     {% if wedding and wedding.owner_id == current_user.id and not wedding.has_full_feature_access %}
-      <form method="post" action="{{ url_for('billing.upgrade') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Pay E{{ owner_price|moneyfmt(0) }} with MoMo</button></form>
+      <form method="post" action="{{ url_for('billing.upgrade') }}" data-payment-confirm data-payment-label="Standard access for this wedding project" data-payment-amount="{{ owner_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_number or '' }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="payment_confirmed" value=""><button class="button primary" type="submit"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Pay E{{ owner_price|moneyfmt(0) }} with MoMo</button></form>
     {% elif wedding and wedding.has_full_feature_access %}<span class="current-plan">Full access active</span>{% endif %}
   </article>
 </section>
