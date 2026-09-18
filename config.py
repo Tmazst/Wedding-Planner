@@ -10,6 +10,15 @@ load_dotenv(BASE_DIR / ".env")
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
+
+    # A dedicated cookie name prevents legacy/duplicate Flask cookies from
+    # trapping installed Chrome PWAs in an authentication loop.
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "umshado_session_v2")
+    SESSION_COOKIE_DOMAIN = None
+    SESSION_COOKIE_PATH = "/"
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'wedding_planner.db'}"
     )
