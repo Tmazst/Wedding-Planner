@@ -31,6 +31,14 @@ class Config:
         "MOJAPOS_MOCK_AUTO_COMPLETE", "false"
     ).lower() in {"1", "true", "yes", "on"}
     CSRF_PROTECT = True
+
+    # Lightweight request diagnostics are stored in rotating files, not SQLite.
+    ANALYTICS_ENABLED = os.getenv("ANALYTICS_ENABLED", "true").lower() in {
+        "1", "true", "yes", "on"
+    }
+    ANALYTICS_LOG_PATH = os.getenv("ANALYTICS_LOG_PATH") or None
+    ANALYTICS_LOG_MAX_BYTES = int(os.getenv("ANALYTICS_LOG_MAX_BYTES", str(2 * 1024 * 1024)))
+    ANALYTICS_LOG_BACKUP_COUNT = int(os.getenv("ANALYTICS_LOG_BACKUP_COUNT", "3"))
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"
     # Set to redis://127.0.0.1:6379/0 if realtime events must cross processes.
