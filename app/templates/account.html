@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/phone_fields.html" import phone_fields %}
 {% block title %}My account · Wedding Planner{% endblock %}
 {% block content %}
 <section class="page-heading"><p class="eyebrow">Your account</p><h1>Details & plan</h1><p>Keep your contact details ready for MoMo payments and review your wedding access.</p></section>
@@ -9,7 +10,7 @@
     <h2><i class="fa-solid fa-user-pen" aria-hidden="true"></i> Personal details</h2>
     <label>Full name<input name="name" value="{{ current_user.name }}" required autocomplete="name"></label>
     <label>Email address<input type="email" name="email" value="{{ current_user.email }}" required autocomplete="email"></label>
-    <label>MTN MoMo phone number<input type="tel" name="phone_number" value="{{ current_user.phone_number or '' }}" placeholder="7612 3456" required autocomplete="tel"></label>
+    {{ phone_fields(countries, selected_country, phone_value) }}
     <button class="button primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save details</button>
   </form>
   <div class="account-sidebar">

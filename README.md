@@ -5,6 +5,7 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 ## Current MVP
 
 - Account registration and login
+- International phone-number registration with country selection and E.164 storage
 - Basic wedding setup
 - Budget target and live financial summary
 - Budget categories
@@ -120,6 +121,10 @@ STAKEHOLDER_PRICE=30.00
 
 Local proofing uses MojaPOS mock mode. Before production, set both mock options to
 `false`, add the real API key and configure `/api/payment/callback` in MojaPOS.
+International phone numbers can register, but MoJaPOS self-payment is restricted
+to the comma-separated ISO country codes in `MOJAPOS_SUPPORTED_COUNTRIES` (the
+safe default is `SZ`). Owners with a supported number may still pay for an
+international stakeholder's invitation.
 
 ## Payment tracing during live testing
 

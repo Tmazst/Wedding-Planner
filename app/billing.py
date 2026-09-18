@@ -24,6 +24,11 @@ def configured_price(key):
     return Decimal(current_app.config[key]).quantize(Decimal("0.01"))
 
 
+def payment_country_supported(user=None):
+    account = user or current_user
+    return account.phone_country in current_app.config["MOJAPOS_SUPPORTED_COUNTRIES"]
+
+
 def create_gateway_payment(*, kind, amount, wedding, invitation=None):
     existing = db.session.scalar(
         select(Payment).where(
@@ -59,7 +64,7 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
     result = gateway.service.initiate_payment(
         external_ref_id=payment.external_ref_id,
         amount=payment.amount,
-        phone_number=current_user.phone_number,
+        phone_number=current_user.phone_number.lstrip("+"),
         message="Wedding Planner access payment",
         note="One-time Wedding Planner project access",
     )
@@ -91,6 +96,7 @@ def pricing():
         owner_price=configured_price("OWNER_PLAN_PRICE"),
         stakeholder_price=configured_price("STAKEHOLDER_PRICE"),
         free_limit=current_app.config["FREE_BUDGET_ITEM_LIMIT"],
+        payment_country_supported=payment_country_supported(),
     )
 
 
@@ -106,6 +112,9 @@ def upgrade():
     if not current_user.phone_number:
         flash("Add your MoMo phone number before starting payment.", "info")
         return redirect(url_for("main.account_phone", next="pricing"))
+    if not payment_country_supported():
+        flash("MojaPOS payments currently require an Eswatini mobile number.", "error")
+        return redirect(url_for("billing.pricing"))
     if request.form.get("payment_confirmed") != "yes":
         flash("Please confirm the amount before sending the MoMo request.", "error")
         return redirect(url_for("billing.pricing"))
@@ -134,6 +143,9 @@ def team():
         if payer == "owner" and not unrestricted_wedding and not current_user.phone_number:
             flash("Add your MoMo phone number before paying for an invitation.", "info")
             return redirect(url_for("main.account_phone", next="team"))
+        if payer == "owner" and not unrestricted_wedding and not payment_country_supported():
+            flash("Owner payment currently requires an Eswatini mobile number.", "error")
+            return redirect(url_for("billing.team"))
         if payer == "owner" and not unrestricted_wedding and request.form.get("payment_confirmed") != "yes":
             flash("Please confirm the amount before sending the MoMo request.", "error")
             return redirect(url_for("billing.team"))
@@ -166,6 +178,7 @@ def team():
     return render_template(
         "billing/team.html", wedding=wedding,
         stakeholder_price=configured_price("STAKEHOLDER_PRICE"),
+        payment_country_supported=payment_country_supported(),
     )
 
 
@@ -191,6 +204,9 @@ def accept_invitation(token):
         "billing/invitation.html", invitation=invitation, expired=expired,
         already_member=already_member,
         stakeholder_price=configured_price("STAKEHOLDER_PRICE"),
+        payment_country_supported=(
+            not current_user.is_authenticated or payment_country_supported()
+        ),
     )
 
 
@@ -246,6 +262,13 @@ def join_invitation(token):
     if not current_user.phone_number:
         flash("Add your MoMo phone number before starting payment.", "info")
         return redirect(url_for("main.account_phone", next=f"invite:{token}"))
+    if not payment_country_supported():
+        flash(
+            "Self-payment currently requires an Eswatini mobile number. "
+            "Ask the wedding owner to pay for your invitation.",
+            "error",
+        )
+        return redirect(url_for("billing.accept_invitation", token=token))
     if request.form.get("payment_confirmed") != "yes":
         flash("Please confirm the amount before sending the MoMo request.", "error")
         return redirect(url_for("billing.accept_invitation", token=token))

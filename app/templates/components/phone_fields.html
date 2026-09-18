@@ -1,0 +1,12 @@
+{% macro phone_fields(countries, selected_country='SZ', phone_value='') -%}
+<div class="phone-input-grid">
+  <label>Country or region
+    <select name="phone_country" required autocomplete="country">
+      {% for country in countries %}<option value="{{ country.code }}"{% if country.code == selected_country %} selected{% endif %}>{{ country.name }} ({{ country.calling_code }})</option>{% endfor %}
+    </select>
+  </label>
+  <label>Mobile phone number
+    <input type="tel" name="phone_number" value="{{ phone_value }}" placeholder="Enter your mobile number" required autocomplete="tel" inputmode="tel">
+  </label>
+</div>
+{%- endmacro %}

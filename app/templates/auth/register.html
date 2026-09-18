@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/phone_fields.html" import phone_fields %}
 {% block title %}Create account · Wedding Planner{% endblock %}
 {% block content %}
 <section class="auth-layout">
@@ -9,7 +10,7 @@
     <h2>Create account</h2>
     <label>Your name<input name="name" required autocomplete="name"></label>
     <label>Email<input type="email" name="email" required autocomplete="email"></label>
-    <label>MTN MoMo phone number<input type="tel" name="phone_number" placeholder="7612 3456" required autocomplete="tel"></label>
+    {{ phone_fields(countries, selected_country, phone_value) }}
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
     <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
     <button class="button primary" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create account</button>
