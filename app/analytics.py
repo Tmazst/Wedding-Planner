@@ -190,10 +190,10 @@ def build_analytics_summary(app, days=7):
         "request_error",
         "server_error",
     }
-    issues = [
-        event for event in events
-        if event.get("status", 0) >= 400 or event.get("outcome") in issue_outcomes
-    ]
+    def is_issue(event):
+        return event.get("status", 0) >= 400 or event.get("outcome") in issue_outcomes
+
+    issues = [event for event in events if is_issue(event)]
 
     login_pages = matches("main.login", "GET")
     login_attempts = matches("main.login", "POST")
@@ -205,7 +205,7 @@ def build_analytics_summary(app, days=7):
         page = page_totals[event.get("route", "unknown")]
         page["requests"] += 1
         page["total_ms"] += event.get("duration_ms", 0)
-        if event in issues:
+        if is_issue(event):
             page["issues"] += 1
 
     page_health = []
