@@ -61,7 +61,7 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
         amount=payment.amount,
         phone_number=current_user.phone_number,
         message="Wedding Planner access payment",
-        note="Wedding Planner subscription",
+        note="One-time Wedding Planner project access",
     )
     if not result.get("success"):
         payment_event('gateway_rejected', payment_id=payment.id, ref=payment.external_ref_id,
@@ -106,6 +106,9 @@ def upgrade():
     if not current_user.phone_number:
         flash("Add your MoMo phone number before starting payment.", "info")
         return redirect(url_for("main.account_phone", next="pricing"))
+    if request.form.get("payment_confirmed") != "yes":
+        flash("Please confirm the amount before sending the MoMo request.", "error")
+        return redirect(url_for("billing.pricing"))
     payment = create_gateway_payment(
         kind="owner_upgrade", amount=configured_price("OWNER_PLAN_PRICE"), wedding=wedding
     )
@@ -131,6 +134,9 @@ def team():
         if payer == "owner" and not unrestricted_wedding and not current_user.phone_number:
             flash("Add your MoMo phone number before paying for an invitation.", "info")
             return redirect(url_for("main.account_phone", next="team"))
+        if payer == "owner" and not unrestricted_wedding and request.form.get("payment_confirmed") != "yes":
+            flash("Please confirm the amount before sending the MoMo request.", "error")
+            return redirect(url_for("billing.team"))
         role = request.form.get("role", "stakeholder")
         if role not in {"partner", "matron_of_honour", "family_friend", "stakeholder"}:
             role = "stakeholder"
@@ -240,6 +246,9 @@ def join_invitation(token):
     if not current_user.phone_number:
         flash("Add your MoMo phone number before starting payment.", "info")
         return redirect(url_for("main.account_phone", next=f"invite:{token}"))
+    if request.form.get("payment_confirmed") != "yes":
+        flash("Please confirm the amount before sending the MoMo request.", "error")
+        return redirect(url_for("billing.accept_invitation", token=token))
 
     payment = create_gateway_payment(
         kind="invitee_pays_invite",

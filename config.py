@@ -18,13 +18,19 @@ class Config:
     SESSION_COOKIE_PATH = "/"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() in {
+        "1", "true", "yes", "on"
+    }
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'wedding_planner.db'}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     FREE_BUDGET_ITEM_LIMIT = int(os.getenv("FREE_BUDGET_ITEM_LIMIT", "4"))
-    OWNER_PLAN_PRICE = os.getenv("OWNER_PLAN_PRICE", "40.00")
+    OWNER_PLAN_PRICE = os.getenv("OWNER_PLAN_PRICE", "60.00")
     STAKEHOLDER_PRICE = os.getenv("STAKEHOLDER_PRICE", "30.00")
     PAYMENT_CURRENCY = os.getenv("MOJAPOS_CURRENCY", "SZL")
     MOJAPOS_MOCK_AUTO_COMPLETE = os.getenv(
@@ -40,7 +46,17 @@ class Config:
     ANALYTICS_LOG_MAX_BYTES = int(os.getenv("ANALYTICS_LOG_MAX_BYTES", str(2 * 1024 * 1024)))
     ANALYTICS_LOG_BACKUP_COUNT = int(os.getenv("ANALYTICS_LOG_BACKUP_COUNT", "3"))
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
-    WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"
+    WEDDING_PHOTO_FOLDER = BASE_DIR / "instance" / "uploads" / "weddings"
+    LEGACY_WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"
+    TERMS_VERSION = "2026-09-18"
+    PRIVACY_VERSION = "2026-09-18"
+    APP_VISIT_RETENTION_DAYS = int(os.getenv("APP_VISIT_RETENTION_DAYS", "90"))
+    ANALYTICS_RETENTION_DAYS = int(os.getenv("ANALYTICS_RETENTION_DAYS", "90"))
+    PAYMENT_LOG_RETENTION_DAYS = int(os.getenv("PAYMENT_LOG_RETENTION_DAYS", "90"))
+    SECURITY_LOG_RETENTION_DAYS = int(os.getenv("SECURITY_LOG_RETENTION_DAYS", "90"))
+    EXPIRED_INVITATION_RETENTION_DAYS = int(
+        os.getenv("EXPIRED_INVITATION_RETENTION_DAYS", "90")
+    )
     # Set to redis://127.0.0.1:6379/0 if realtime events must cross processes.
     SOCKETIO_MESSAGE_QUEUE = os.getenv("SOCKETIO_MESSAGE_QUEUE") or None
     SOCKETIO_CORS_ALLOWED_ORIGINS = None

@@ -4,7 +4,7 @@
 <section class="report-toolbar">
   <a class="back-link" href="{{ url_for('main.dashboard') }}">← Overview</a>
   <div class="button-row">
-    <button class="button secondary" type="button" data-no-loader onclick="window.print()"><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
+    <button class="button secondary" type="button" data-no-loader data-print><i class="fa-solid fa-print" aria-hidden="true"></i> Print</button>
     <a class="button primary" href="{{ url_for('main.wedding_report_pdf') }}" download data-no-loader><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Download PDF</a>
   </div>
 </section>

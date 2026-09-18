@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Terms of Use · UMSHADO{% endblock %}
+{% block content %}
+<article class="legal-document card">
+  <p class="eyebrow">Effective 18 September 2026</p>
+  <h1>Terms of Use</h1>
+  <p>These Terms govern your use of the UMSHADO Wedding Planner provided by Tech Xolutions. By creating an account, you agree to these Terms and acknowledge the <a href="{{ url_for('main.privacy') }}">Privacy Notice</a>.</p>
+
+  <h2>1. The service</h2>
+  <p>UMSHADO helps couples and authorised stakeholders organise wedding details, budgets, quotations, selected vendors and planning activity. It is a planning tool and does not act as a wedding supplier, financial adviser, payment network or guarantor of a vendor's work.</p>
+
+  <h2>2. Accounts and invitations</h2>
+  <p>You must provide accurate registration information, protect your password and promptly tell us about suspected unauthorised use. Wedding owners are responsible for deciding whom to invite and for sharing invitation links safely. Each person should use their own account. You may not access a wedding project without the owner's authorisation.</p>
+
+  <h2>3. Plans and charges</h2>
+  <p>The Free plan permits up to four budget items and does not permit stakeholder invitations. Standard access costs <strong>E60</strong> for the wedding-project owner. Stakeholder access costs <strong>E30 per person</strong>, paid either by the owner or by the invited stakeholder as selected when the invitation is created.</p>
+  <p>These are currently intended as one-time access charges, not automatically renewing subscriptions. Access purchased for the owner or a stakeholder is limited to that one wedding project. If recurring billing is introduced later, it will require a clear separate explanation and confirmation.</p>
+  <p>The current price and payment details are shown for confirmation before a MoMo request is sent. Payment access is activated only after a successful gateway confirmation. Failed, cancelled or reversed payments do not create paid access.</p>
+
+  <h2>4. User content and acceptable use</h2>
+  <p>You keep responsibility for the wedding details, photographs, quotations and other content you add. You confirm that you have permission to upload and share that content with the people you invite. Do not upload unlawful, abusive, deceptive, infringing or malicious material; misuse another person's information; attack the service; or attempt to bypass account, invitation or payment controls.</p>
+
+  <h2>5. Vendors, budgets and decisions</h2>
+  <p>Quotation figures and calculated totals depend on information entered by users. You are responsible for checking prices, supplier identity, contracts, payment instructions and final calculations before making a decision. Tech Xolutions is not a party to arrangements between users and wedding vendors.</p>
+
+  <h2>6. Availability and changes</h2>
+  <p>We aim to keep UMSHADO available and reliable, but maintenance, internet failures, payment-provider interruptions and unexpected faults may affect access. We may improve, secure or change the service while taking reasonable care not to remove paid access without a valid reason.</p>
+
+  <h2>7. Suspension and termination</h2>
+  <p>We may restrict or suspend access where reasonably necessary to address abuse, fraud, security risks, non-payment or legal requirements. Users may delete their account from the Account page. Deletion removes or anonymises private content and identifiers, while limited transaction records may be retained for accounting, disputes and legal duties.</p>
+
+  <h2>8. Responsibility and liability</h2>
+  <p>To the extent permitted by applicable law, Tech Xolutions is not responsible for indirect losses, vendor failures, decisions based on user-entered figures, or events outside its reasonable control. Nothing in these Terms excludes rights or responsibilities that cannot lawfully be excluded.</p>
+
+  <h2>9. Privacy</h2>
+  <p>Our <a href="{{ url_for('main.privacy') }}">Privacy Notice</a> explains what information we collect, how private wedding information is handled, and how users may export or delete their information.</p>
+
+  <h2>10. Contact and governing law</h2>
+  <p>These Terms are governed by the laws applicable in the Kingdom of Eswatini. Questions or complaints should first be sent to Tech Xolutions so that we can try to resolve them promptly.</p>
+  <p><strong>Tech Xolutions</strong><br>Corner of Mbhabha &amp; Du Toit streets, Lomalanga building, Manzini<br><strong>Email:</strong> <a href="mailto:support@techxolutions.com">support@techxolutions.com</a></p>
+</article>
+{% endblock %}

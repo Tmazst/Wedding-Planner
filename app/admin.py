@@ -48,6 +48,8 @@ def record_session_visit():
 @bp.get("/")
 @admin_required
 def dashboard():
+    from .security_logging import security_event
+    security_event("admin_dashboard_view", user_id=current_user.id)
     now = datetime.now(timezone.utc)
     today_start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc)
     seven_day_start = today_start - timedelta(days=6)

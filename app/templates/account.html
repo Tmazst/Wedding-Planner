@@ -24,4 +24,14 @@
     </article>
   </div>
 </section>
+<section class="card account-data-controls">
+  <div><p class="eyebrow">Your information</p><h2>Export or delete your account</h2><p>Download a JSON copy of your account, wedding, budget and payment information. Account deletion removes or anonymises private content; minimal transaction records may be retained for accounting, disputes and legal obligations.</p><a class="button secondary" href="{{ url_for('main.export_account') }}" download><i class="fa-solid fa-download" aria-hidden="true"></i> Download my information</a></div>
+  <form class="delete-account-form" method="post" action="{{ url_for('main.delete_account') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h3>Delete account</h3>
+    <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+    <label>Type DELETE to confirm<input name="confirmation" required autocomplete="off" pattern="DELETE" title="Type DELETE in capital letters"></label>
+    <button class="button danger-button" type="submit"><i class="fa-solid fa-trash" aria-hidden="true"></i> Permanently delete account</button>
+  </form>
+</section>
 {% endblock %}

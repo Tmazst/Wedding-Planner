@@ -13,7 +13,7 @@
   {% elif invitation.status == 'accepted' %}<p class="plan-notice">This invitation has already been used.</p>
   {% else %}
     <p><strong>{{ 'Your access is included.' if invitation.payer == 'owner' or current_user.has_full_feature_access else ('Your stakeholder access fee is E' ~ (stakeholder_price|moneyfmt(0)) ~ '.') }}</strong></p>
-    <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' or current_user.has_full_feature_access else 'Pay with MoMo and join' }}</button></form>
+    <form method="post" action="{{ url_for('billing.join_invitation', token=invitation.token) }}"{% if invitation.payer != 'owner' and not current_user.has_full_feature_access %} data-payment-confirm data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_number or '' }}"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="payment_confirmed" value=""><button class="button primary" type="submit">{{ 'Join wedding project' if invitation.payer == 'owner' or current_user.has_full_feature_access else 'Pay with MoMo and join' }}</button></form>
   {% endif %}
 {% endif %}
 </section>

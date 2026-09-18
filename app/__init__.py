@@ -2,9 +2,11 @@ from pathlib import Path
 from datetime import datetime, timezone
 import hmac
 import secrets
+import shutil
 from decimal import Decimal
 
 from flask import Flask, abort, render_template, request, send_from_directory, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from .extensions import db, login_manager, migrate, socketio
@@ -13,6 +15,28 @@ from .extensions import db, login_manager, migrate, socketio
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    if not app.config.get("TESTING") and app.config["SECRET_KEY"] == "dev-change-me":
+        raise RuntimeError("Set a strong SECRET_KEY before starting UMSHADO.")
+
+    # Photos used to live under /static and could therefore be opened without
+    # signing in. Move existing files out of the public tree before serving.
+    legacy_photos = app.config.get("LEGACY_WEDDING_PHOTO_FOLDER")
+    private_photos = app.config.get("WEDDING_PHOTO_FOLDER")
+    if legacy_photos and private_photos:
+        legacy_photos = Path(legacy_photos)
+        private_photos = Path(private_photos)
+        if legacy_photos.exists():
+            for old_file in legacy_photos.rglob("*"):
+                if not old_file.is_file() or old_file.name == ".gitkeep":
+                    continue
+                destination = private_photos / old_file.relative_to(legacy_photos)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if destination.exists():
+                    old_file.unlink()
+                else:
+                    shutil.move(str(old_file), str(destination))
 
     css_path = Path(app.static_folder) / "css" / "app.css"
     app.config["APP_CSS_VERSION"] = (
@@ -26,6 +50,9 @@ def create_app(config_class=Config):
 
     from .payment_logging import configure_payment_logging
     configure_payment_logging(app)
+
+    from .security_logging import configure_security_logging
+    configure_security_logging(app)
 
     from .analytics import configure_request_analytics
     configure_request_analytics(app)
@@ -95,16 +122,31 @@ def create_app(config_class=Config):
         return error
 
     @app.after_request
-    def prevent_stale_forms(response):
+    def apply_browser_security(response):
         if response.mimetype == "text/html":
             response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.socket.io; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+            "img-src 'self' data:; connect-src 'self' https: wss:; "
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        )
+        if request.is_secure:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
     from .models import User
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.get(User, int(user_id))
+        user = db.session.get(User, int(user_id))
+        return user if user is not None and user.deleted_at is None else None
 
     from .routes import bp
     app.register_blueprint(bp)
@@ -121,6 +163,9 @@ def create_app(config_class=Config):
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)
+
+    from .retention import register_retention_command
+    register_retention_command(app)
 
     @app.after_request
     def audit_payment_callback(response):

@@ -3,8 +3,9 @@
 {% block content %}
 <section class="page-heading"><p class="eyebrow">Full access</p><h1>Wedding team</h1><p>Invite the people helping you plan.{% if not wedding.owner.has_full_feature_access %} Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.{% else %} Access fees are bypassed for this unrestricted account.{% endif %}</p></section>
 <section class="split-layout">
-  <form class="card form-card compact" method="post">
+  <form class="card form-card compact" method="post"{% if not wedding.owner.has_full_feature_access %} data-payment-confirm data-payment-owner-only data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_number or '' }}"{% endif %}>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="payment_confirmed" value="">
     <h2>Create invitation</h2>
     <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
     <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
@@ -14,7 +15,7 @@
   <div class="team-list">
     {% for invitation in wedding.invitations|reverse %}
       <article class="card invite-card"><div><span class="status">{{ invitation.status|replace('_', ' ')|title }}</span><h2>{{ invitation.invitee_name or invitation.role|replace('_', ' ')|title }}</h2><p>{{ 'Access included' if wedding.owner.has_full_feature_access else ('You pay' if invitation.payer == 'owner' else 'Stakeholder pays') }}</p></div>
-      {% if invitation.status in ['pending', 'paid'] %}<div class="invite-link"><label>Invite link<input readonly value="{{ url_for('billing.accept_invitation', token=invitation.token, _external=True) }}" onclick="this.select()"></label></div>{% endif %}</article>
+      {% if invitation.status in ['pending', 'paid'] %}<div class="invite-link"><label>Invite link<input readonly data-select-on-click value="{{ url_for('billing.accept_invitation', token=invitation.token, _external=True) }}"></label></div>{% endif %}</article>
     {% else %}<div class="card empty"><h2>No invitations yet</h2><p>Create a private link for your first stakeholder.</p></div>{% endfor %}
   </div>
 </section>

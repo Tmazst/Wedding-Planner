@@ -15,12 +15,20 @@ class TestConfig:
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CSRF_PROTECT = False
+    SESSION_COOKIE_SECURE = False
     FREE_BUDGET_ITEM_LIMIT = 4
-    OWNER_PLAN_PRICE = "40.00"
+    OWNER_PLAN_PRICE = "60.00"
     STAKEHOLDER_PRICE = "30.00"
     PAYMENT_CURRENCY = "SZL"
     MOJAPOS_MOCK_AUTO_COMPLETE = True
     ANALYTICS_ENABLED = False
+    TERMS_VERSION = "2026-09-18"
+    PRIVACY_VERSION = "2026-09-18"
+    APP_VISIT_RETENTION_DAYS = 90
+    ANALYTICS_RETENTION_DAYS = 90
+    PAYMENT_LOG_RETENTION_DAYS = 90
+    SECURITY_LOG_RETENTION_DAYS = 90
+    EXPIRED_INVITATION_RETENTION_DAYS = 90
 
 
 @pytest.fixture()
@@ -41,7 +49,7 @@ def client(app):
 def register(client, name, email, phone, invite_token=""):
     return client.post("/register", data={
         "name": name, "email": email, "phone_number": phone,
-        "password": "secret1", "invite_token": invite_token,
+        "password": "secret1", "invite_token": invite_token, "accept_terms": "yes",
     })
 
 
@@ -110,6 +118,7 @@ def test_request_analytics_tracks_auth_outcomes_without_form_data(monkeypatch, t
             "email": "tester@example.com",
             "phone_number": "76000009",
             "password": "private-password",
+            "accept_terms": "yes",
         },
         headers=mobile_chrome,
     )
@@ -136,6 +145,34 @@ def test_whatsapp_support_link_is_available_on_public_pages(client):
     page = client.get("/login")
     assert b"https://wa.me/26879651471" in page.data
     assert b"Contact UMSHADO support on WhatsApp" in page.data
+
+
+def test_legal_pages_and_registration_consent_are_available(app, client):
+    privacy = client.get("/privacy")
+    terms = client.get("/terms")
+    signup = client.get("/register")
+    assert privacy.status_code == 200
+    assert b"not an end-to-end encrypted service" in privacy.data
+    assert b"support@techxolutions.com" in privacy.data
+    assert b"Information visible to wedding your stakeholders" in privacy.data
+    assert b"E60" in terms.data
+    assert b"limited to that one wedding project" in terms.data
+    assert b"Terms of Use" in signup.data and b"Privacy Notice" in signup.data
+
+    rejected = client.post("/register", data={
+        "name": "No Consent", "email": "no@example.com",
+        "phone_number": "76001111", "password": "secret1",
+    }, follow_redirects=True)
+    assert b"must agree to the Terms of Use" in rejected.data
+    with app.app_context():
+        assert db.session.scalar(select(User).where(User.email == "no@example.com")) is None
+
+    register(client, "Consent User", "consent@example.com", "76001112")
+    with app.app_context():
+        user = db.session.scalar(select(User).where(User.email == "consent@example.com"))
+        assert user.terms_accepted_at is not None
+        assert user.terms_version == "2026-09-18"
+        assert user.privacy_version == "2026-09-18"
 
 
 def test_stale_login_form_recovers_without_disabling_csrf(monkeypatch, tmp_path):
@@ -310,23 +347,32 @@ def test_quotation_activity_is_persisted_and_published_live(app, client):
     realtime.disconnect(namespace="/planning")
 
 
-def test_standard_upgrade_is_exactly_e40(app, client):
+def test_standard_upgrade_is_exactly_e60(app, client):
     create_owner_wedding(client)
-    response = client.post("/billing/upgrade", follow_redirects=True)
+    response = client.post("/billing/upgrade", data={"payment_confirmed": "yes"}, follow_redirects=True)
     assert b"Payment confirmed" in response.data
     with app.app_context():
         wedding = db.session.scalar(select(Wedding))
         payment = db.session.scalar(select(Payment))
         assert wedding.plan_tier == "standard"
-        assert str(payment.amount) == "40.00"
+        assert str(payment.amount) == "60.00"
         assert payment.status == "completed"
+
+
+def test_payment_request_requires_explicit_confirmation(app, client):
+    create_owner_wedding(client)
+    response = client.post("/billing/upgrade", follow_redirects=True)
+    assert b"confirm the amount" in response.data
+    with app.app_context():
+        assert db.session.scalar(select(Payment)) is None
 
 
 def test_owner_paid_invitation_adds_registered_stakeholder(app, client):
     create_owner_wedding(client)
-    client.post("/billing/upgrade")
+    client.post("/billing/upgrade", data={"payment_confirmed": "yes"})
     client.post("/team", data={
         "invitee_name": "Nomsa", "role": "matron_of_honour", "payer": "owner",
+        "payment_confirmed": "yes",
     })
     with app.app_context():
         invitation = db.session.scalar(select(Invitation))
@@ -348,7 +394,7 @@ def test_owner_paid_invitation_adds_registered_stakeholder(app, client):
 
 def test_invitee_can_pay_their_own_e30_access(app, client):
     create_owner_wedding(client)
-    client.post("/billing/upgrade")
+    client.post("/billing/upgrade", data={"payment_confirmed": "yes"})
     client.post("/team", data={
         "invitee_name": "Bongani", "role": "family_friend", "payer": "invitee",
     })
@@ -357,7 +403,7 @@ def test_invitee_can_pay_their_own_e30_access(app, client):
 
     client.post("/logout")
     register(client, "Bongani", "bongani@example.com", "76345678", token)
-    paid = client.post(f"/invite/{token}/join", follow_redirects=True)
+    paid = client.post(f"/invite/{token}/join", data={"payment_confirmed": "yes"}, follow_redirects=True)
     assert b"Payment confirmed" in paid.data
     with app.app_context():
         invitation = db.session.scalar(select(Invitation))
@@ -397,6 +443,41 @@ def test_owner_can_upload_couple_photo(app, client):
         assert wedding.profile_image.endswith(".jpg")
         saved = app.config["WEDDING_PHOTO_FOLDER"].parent / wedding.profile_image
         assert saved.is_file()
+    protected = client.get("/wedding/photo")
+    assert protected.status_code == 200
+    assert protected.headers["Cache-Control"] == "private, no-store"
+    client.post("/logout")
+    assert client.get("/wedding/photo").status_code == 302
+
+
+def test_account_export_and_deletion_remove_personal_data(app, client):
+    create_owner_wedding(client)
+    client.post("/budget", data={"name": "Venue", "planned_amount": "20000"})
+    exported = client.get("/account/export")
+    assert exported.status_code == 200
+    assert exported.json["account"]["email"] == "owner@example.com"
+    assert exported.json["weddings"][0]["budget_items"][0]["name"] == "Venue"
+
+    deleted = client.post("/account/delete", data={
+        "password": "secret1", "confirmation": "DELETE",
+    }, follow_redirects=True)
+    assert b"account and wedding information have been deleted" in deleted.data
+    with app.app_context():
+        user = db.session.scalar(select(User))
+        wedding = db.session.scalar(select(Wedding))
+        assert user.deleted_at is not None
+        assert user.email != "owner@example.com"
+        assert user.phone_number is None
+        assert wedding.title == "Deleted wedding project"
+        assert db.session.scalar(select(BudgetCategory)) is None
+
+
+def test_production_security_headers_are_set(client):
+    response = client.get("/login", base_url="https://wedding.example")
+    assert response.headers["Strict-Transport-Security"].startswith("max-age=")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
 
 
 def test_pwa_files_are_public(client):
@@ -442,7 +523,7 @@ def test_live_mock_mode_and_payment_trace(app, client, monkeypatch):
         )
 
     monkeypatch.setattr(gateway.service._session, "post", fake_post)
-    response = client.post("/billing/upgrade", follow_redirects=True)
+    response = client.post("/billing/upgrade", data={"payment_confirmed": "yes"}, follow_redirects=True)
     assert b"Approve the payment on your phone" in response.data
     assert len(calls) == 1
     with app.app_context():
@@ -466,7 +547,7 @@ def test_old_mock_pending_payment_not_resubmitted(app, client, monkeypatch):
     with app.app_context():
         wedding = db.session.scalar(select(Wedding))
         db.session.add(Payment(
-            external_ref_id="oldmock123", kind="owner_upgrade", amount="40.00",
+            external_ref_id="oldmock123", kind="owner_upgrade", amount="60.00",
             currency="SZL", status="pending", user_id=wedding.owner_id,
             wedding_id=wedding.id, gateway_transaction_id="mock_oldmock123",
         ))
@@ -477,5 +558,5 @@ def test_old_mock_pending_payment_not_resubmitted(app, client, monkeypatch):
     def unexpected_post(*args, **kwargs):
         raise AssertionError("Existing pending payment must not trigger another request")
     monkeypatch.setattr(gateway.service._session, "post", unexpected_post)
-    response = client.post("/billing/upgrade", follow_redirects=True)
+    response = client.post("/billing/upgrade", data={"payment_confirmed": "yes"}, follow_redirects=True)
     assert b"Test payment only" in response.data
