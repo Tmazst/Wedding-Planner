@@ -2,7 +2,7 @@
 {% block title %}Admin dashboard · UMSHADO{% endblock %}
 {% block content %}
 <section class="page-heading heading-row">
-  <div><p class="eyebrow">Administration</p><h1>App performance</h1><p>A simple view of visits and registrations across UMSHADO.</p></div>
+  <div><p class="eyebrow">Administration</p><h1>App performance</h1><p>Visits, registrations and basic request diagnostics across UMSHADO.</p></div>
   <span class="current-plan"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> {{ 'Super admin' if current_user.is_super_admin else 'Administrator' }}</span>
 </section>
 
@@ -33,4 +33,69 @@
     </table></div>
   </article>
 </section>
+
+<section class="page-heading">
+  <p class="eyebrow">Early-user diagnostics · last {{ request_analytics.days }} days</p>
+  <h2>Request health</h2>
+  <p>Anonymous technical events only. Passwords, form entries, tokens and IP addresses are never recorded.</p>
+</section>
+
+<section class="stats-grid admin-stats">
+  <article class="stat"><span>Page requests</span><strong>{{ request_analytics.requests }}</strong><small>{{ request_analytics.unique_sessions }} testing sessions</small></article>
+  <article class="stat"><span>Detected issues</span><strong>{{ request_analytics.issues }}</strong><small>Rejected forms and HTTP errors</small></article>
+  <article class="stat"><span>Login page</span><strong>{{ request_analytics.login_page_ok }}</strong><small>{{ request_analytics.login_page_failed }} failed to open</small></article>
+  <article class="stat"><span>Login attempts</span><strong>{{ request_analytics.login_success }}/{{ request_analytics.login_attempts }}</strong><small>{{ request_analytics.login_rejected }} unsuccessful</small></article>
+  <article class="stat"><span>Register page</span><strong>{{ request_analytics.register_page_ok }}</strong><small>{{ request_analytics.register_page_failed }} failed to open</small></article>
+  <article class="stat"><span>Registrations</span><strong>{{ request_analytics.register_success }}/{{ request_analytics.register_attempts }}</strong><small>{{ request_analytics.register_rejected }} unsuccessful</small></article>
+</section>
+
+<section class="admin-grid">
+  <article class="card table-card">
+    <div class="card-heading"><div><p class="eyebrow">Routes</p><h2>Page health</h2></div></div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Page</th><th>Requests</th><th>Issues</th><th>Success</th><th>Average</th></tr></thead>
+      <tbody>
+      {% for page in request_analytics.page_health %}
+        <tr><td><strong>{{ page.route }}</strong></td><td>{{ page.requests }}</td><td>{{ page.issues }}</td><td>{{ page.success_rate }}%</td><td>{{ page.average_ms }} ms</td></tr>
+      {% else %}<tr><td colspan="5">Diagnostics will appear as testers use the app.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </article>
+
+  <article class="card table-card">
+    <div class="card-heading"><div><p class="eyebrow">Needs attention</p><h2>Recent issues</h2></div></div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Time</th><th>Request</th><th>Result</th><th>Device</th></tr></thead>
+      <tbody>
+      {% for event in request_analytics.recent_issues %}
+        <tr>
+          <td>{{ event.timestamp[5:16]|replace('T', ' ') }}</td>
+          <td><strong>{{ event.method }} {{ event.route }}</strong><small>Session {{ event.session_ref }}</small></td>
+          <td>{{ event.status }} · {{ event.outcome|replace('_', ' ')|title }}</td>
+          <td>{{ event.device }} · {{ event.browser }}</td>
+        </tr>
+      {% else %}<tr><td colspan="4">No issues recorded in this period.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </article>
+</section>
+
+<article class="card table-card">
+  <div class="card-heading"><div><p class="eyebrow">Latest activity</p><h2>Recent page requests</h2></div></div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Time</th><th>Page</th><th>Status</th><th>Outcome</th><th>Device</th><th>Speed</th></tr></thead>
+    <tbody>
+    {% for event in request_analytics.recent_events %}
+      <tr>
+        <td>{{ event.timestamp[5:16]|replace('T', ' ') }}</td>
+        <td><strong>{{ event.method }} {{ event.route }}</strong><small>Session {{ event.session_ref }}{% if event.user_id %} · User #{{ event.user_id }}{% endif %}</small></td>
+        <td>{{ event.status }}</td>
+        <td>{{ event.outcome|replace('_', ' ')|title }}</td>
+        <td>{{ event.device }} · {{ event.browser }}</td>
+        <td>{{ event.duration_ms }} ms</td>
+      </tr>
+    {% else %}<tr><td colspan="6">No request activity recorded yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</article>
 {% endblock %}
