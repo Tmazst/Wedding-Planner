@@ -27,6 +27,9 @@ def create_app(config_class=Config):
     from .payment_logging import configure_payment_logging
     configure_payment_logging(app)
 
+    from .analytics import configure_request_analytics
+    configure_request_analytics(app)
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)

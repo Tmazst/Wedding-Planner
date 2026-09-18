@@ -20,6 +20,7 @@ class TestConfig:
     STAKEHOLDER_PRICE = "30.00"
     PAYMENT_CURRENCY = "SZL"
     MOJAPOS_MOCK_AUTO_COMPLETE = True
+    ANALYTICS_ENABLED = False
 
 
 @pytest.fixture()
@@ -80,9 +81,60 @@ def test_admin_dashboard_is_private_and_shows_performance(app, client):
     assert b"admin@example.com" in dashboard.data
 
 
+def test_request_analytics_tracks_auth_outcomes_without_form_data(monkeypatch, tmp_path):
+    monkeypatch.setenv("MOJAPOS_MOCK_MODE", "true")
+
+    class AnalyticsConfig(TestConfig):
+        ANALYTICS_ENABLED = True
+
+    analytics_path = tmp_path / "analytics.log"
+    AnalyticsConfig.ANALYTICS_LOG_PATH = str(analytics_path)
+    application = create_app(AnalyticsConfig)
+    with application.app_context():
+        db.create_all()
+
+    browser = application.test_client()
+    mobile_chrome = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/153.0 Mobile Safari/537.36"
+    }
+    browser.get("/login", headers=mobile_chrome)
+    browser.post(
+        "/login",
+        data={"email": "missing@example.com", "password": "never-log-this"},
+        headers=mobile_chrome,
+    )
+    browser.post(
+        "/register",
+        data={
+            "name": "Tester",
+            "email": "tester@example.com",
+            "phone_number": "76000009",
+            "password": "private-password",
+        },
+        headers=mobile_chrome,
+    )
+
+    from app.analytics import build_analytics_summary
+
+    summary = build_analytics_summary(application)
+    assert summary["login_page_ok"] == 1
+    assert summary["login_attempts"] == 1
+    assert summary["login_rejected"] == 1
+    assert summary["register_attempts"] == 1
+    assert summary["register_success"] == 1
+    assert summary["recent_events"][0]["device"] == "Mobile"
+    assert summary["recent_events"][0]["browser"] == "Chrome"
+
+    audit = analytics_path.read_text(encoding="utf-8")
+    assert "missing@example.com" not in audit
+    assert "tester@example.com" not in audit
+    assert "never-log-this" not in audit
+    assert "private-password" not in audit
+
+
 def test_whatsapp_support_link_is_available_on_public_pages(client):
     page = client.get("/login")
-    assert b"https://wa.me/2679651471" in page.data
+    assert b"https://wa.me/26879651471" in page.data
     assert b"Contact UMSHADO support on WhatsApp" in page.data
 
 
@@ -99,9 +151,9 @@ def test_stale_login_form_recovers_without_disabling_csrf(monkeypatch, tmp_path)
     with browser.session_transaction() as session:
         session["csrf_token"] = "new-session-token"
     expired = browser.post("/login", data={"csrf_token": "old-session-token", "email": "x@example.com", "password": "wrong"})
-    assert expired.status_code == 303
-    assert expired.headers["Location"].startswith("/login")
-    assert b"sign-in form expired" in browser.get(expired.headers["Location"]).data
+    assert expired.status_code == 400
+    assert b"Form expired" in expired.data
+    assert expired.headers["Cache-Control"] == "private, no-store"
 
 
 def test_stale_other_form_has_friendly_error_and_no_store(monkeypatch):
@@ -357,7 +409,8 @@ def test_pwa_files_are_public(client):
     worker = client.get("/service-worker.js")
     assert worker.status_code == 200
     assert worker.headers["Service-Worker-Allowed"] == "/"
-    assert b"umshado-static-v2" in worker.data
+    assert b"umshado-static-v3" in worker.data
+    assert b"/static/css/app.css" not in worker.data
     assert b"request.mode === \"navigate\") return" in worker.data
     assert b"/offline" not in worker.data
 

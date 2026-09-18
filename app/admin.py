@@ -6,6 +6,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
+from .analytics import build_analytics_summary
 from .extensions import db
 from .models import AppVisit, User, Wedding
 
@@ -86,6 +87,7 @@ def dashboard():
     recent_users = db.session.scalars(
         select(User).order_by(User.created_at.desc()).limit(8)
     ).all()
+    request_analytics = build_analytics_summary(current_app, days=7)
     return render_template(
         "admin/dashboard.html",
         total_visits=total_visits,
@@ -95,4 +97,5 @@ def dashboard():
         total_weddings=total_weddings,
         daily_activity=daily_activity,
         recent_users=recent_users,
+        request_analytics=request_analytics,
     )
