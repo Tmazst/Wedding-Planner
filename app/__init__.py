@@ -4,7 +4,7 @@ import hmac
 import secrets
 from decimal import Decimal
 
-from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, abort, render_template, request, send_from_directory, session
 
 from config import Config
 from .extensions import db, login_manager, migrate, socketio
@@ -13,6 +13,11 @@ from .extensions import db, login_manager, migrate, socketio
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    css_path = Path(app.static_folder) / "css" / "app.css"
+    app.config["APP_CSS_VERSION"] = (
+        str(int(css_path.stat().st_mtime)) if css_path.exists() else "1"
+    )
 
     @app.template_filter("moneyfmt")
     def moneyfmt(value, places=2):
@@ -60,7 +65,11 @@ def create_app(config_class=Config):
                 token = secrets.token_urlsafe(32)
                 session["csrf_token"] = token
             return token
-        return {"csrf_token": csrf_token, "current_year": datetime.now(timezone.utc).year}
+        return {
+            "csrf_token": csrf_token,
+            "current_year": datetime.now(timezone.utc).year,
+            "app_css_version": app.config["APP_CSS_VERSION"],
+        }
 
     @app.before_request
     def csrf_protect():
@@ -71,9 +80,8 @@ def create_app(config_class=Config):
         expected = session.get("csrf_token", "")
         supplied = request.form.get("csrf_token", "")
         if not expected or not hmac.compare_digest(expected, supplied):
-            if request.endpoint in {"main.login", "main.register"}:
-                flash("Your sign-in form expired. Please try again.", "error")
-                return redirect(url_for(request.endpoint, invite=request.args.get("invite", "")), code=303)
+            # Do not redirect login/register POSTs back to another login page.
+            # A rejected form now stops here and shows the explicit token error.
             abort(400, description="Invalid or missing form token.")
         return None
 
