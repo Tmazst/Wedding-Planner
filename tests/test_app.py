@@ -134,7 +134,7 @@ def test_request_analytics_tracks_auth_outcomes_without_form_data(monkeypatch, t
 
 def test_whatsapp_support_link_is_available_on_public_pages(client):
     page = client.get("/login")
-    assert b"https://wa.me/2679651471" in page.data
+    assert b"https://wa.me/26879651471" in page.data
     assert b"Contact UMSHADO support on WhatsApp" in page.data
 
 
