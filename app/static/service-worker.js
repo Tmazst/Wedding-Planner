@@ -1,8 +1,7 @@
-// Keep the worker for installation, but never intercept pages, forms, or payments.
-// The wedding planner is online-only: authenticated pages must always come from Flask.
-const CACHE_NAME = "umshado-static-v2";
+// Keep the worker for installation, but never intercept pages, forms, payments,
+// or the main stylesheet. Authenticated content and app.css must stay network-first.
+const CACHE_NAME = "umshado-static-v3";
 const STATIC_ASSETS = new Set([
-  "/static/css/app.css",
   "/static/images/umshado-logo.png",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
