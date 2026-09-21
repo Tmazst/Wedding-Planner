@@ -110,8 +110,6 @@ def create_app(config_class=Config):
         expected = session.get("csrf_token", "")
         supplied = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
         if not expected or not hmac.compare_digest(expected, supplied):
-            # Do not redirect login/register POSTs back to another login page.
-            # A rejected form now stops here and shows the explicit token error.
             abort(400, description="Invalid or missing form token.")
         return None
 
@@ -151,7 +149,6 @@ def create_app(config_class=Config):
     from .routes import bp
     app.register_blueprint(bp)
 
-    # Importing registers the authenticated Socket.IO event handlers.
     from . import realtime
     realtime.register_realtime_handlers()
 
@@ -163,6 +160,9 @@ def create_app(config_class=Config):
 
     from .assistant import bp as assistant_bp
     app.register_blueprint(assistant_bp)
+
+    from .advanced import bp as advanced_bp
+    app.register_blueprint(advanced_bp)
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)

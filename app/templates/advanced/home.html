@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Advanced · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow">Advanced plan</p>
+  <h1>Wedding Programme & Invitation Card</h1>
+  <p>Create polished guest-facing designs from the wedding details already saved in UMSHADO.</p>
+</section>
+
+{% if locked %}
+<section class="card">
+  <h2>Advanced is not active for this wedding</h2>
+  <p>The Advanced plan includes the programme designer and invitation-card designer.</p>
+  <a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Advanced plan</a>
+</section>
+{% else %}
+<section class="pricing-grid">
+  {% if programme_enabled %}
+  <article class="card price-card">
+    <span class="plan-label">Programme</span>
+    <h2>Guest Programme</h2>
+    <p>Build the wedding timeline, then apply floral templates, selected fonts and wedding colours.</p>
+    <a class="button primary" href="{{ url_for('advanced.programme') }}">Open programme</a>
+  </article>
+  {% endif %}
+  {% if invitation_card_enabled %}
+  <article class="card price-card">
+    <span class="plan-label">Invitation</span>
+    <h2>Invitation Card</h2>
+    <p>Use the same design system and couple profile image to create a shareable invitation card.</p>
+    <a class="button primary" href="{{ url_for('advanced.invitation_card') }}">Open invitation card</a>
+  </article>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
