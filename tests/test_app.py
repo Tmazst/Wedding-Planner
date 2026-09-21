@@ -327,6 +327,8 @@ def test_assistant_proposes_then_confirms_budget_change(app, client):
 def test_assistant_is_private_and_graceful_without_api_key(app, client):
     assert client.post("/assistant/message", json={"message": "Help me"}).status_code == 302
     create_owner_wedding(client)
+    page = client.get("/dashboard")
+    assert b'id="assistant-form" data-no-loader' in page.data
     response = client.post("/assistant/message", json={"message": "Summarise my wedding."})
     assert response.status_code == 503
     assert "not been configured" in response.json["error"]
