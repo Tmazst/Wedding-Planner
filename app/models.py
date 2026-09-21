@@ -76,6 +76,8 @@ class Wedding(db.Model):
     members = db.relationship("WeddingMember", backref="wedding", lazy=True, cascade="all, delete-orphan")
     invitations = db.relationship("Invitation", backref="wedding", lazy=True, cascade="all, delete-orphan")
     activities = db.relationship("ActivityEvent", backref="wedding", lazy=True, cascade="all, delete-orphan")
+    programme = db.relationship("WeddingProgramme", backref="wedding", uselist=False, cascade="all, delete-orphan")
+    invitation_card = db.relationship("InvitationCardDesign", backref="wedding", uselist=False, cascade="all, delete-orphan")
 
     @property
     def estimated_total(self):
@@ -83,7 +85,11 @@ class Wedding(db.Model):
 
     @property
     def has_full_feature_access(self):
-        return self.plan_tier == "standard" or self.owner.has_full_feature_access
+        return self.plan_tier in {"standard", "advanced"} or self.owner.has_full_feature_access
+
+    @property
+    def has_advanced_access(self):
+        return self.plan_tier == "advanced" or self.owner.has_full_feature_access
 
 
 class BudgetCategory(db.Model):
@@ -112,6 +118,53 @@ class Quotation(db.Model):
     is_selected = db.Column(db.Boolean, default=False, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("budget_category.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class WeddingProgramme(db.Model):
+    """Advanced-plan programme content and lightweight design selections."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    wedding_id = db.Column(db.Integer, db.ForeignKey("wedding.id"), unique=True, nullable=False, index=True)
+    title = db.Column(db.String(160), default="Wedding Programme", nullable=False)
+    template_key = db.Column(db.String(40), default="floral_elegant", nullable=False)
+    font_style = db.Column(db.String(40), default="elegant", nullable=False)
+    primary_color = db.Column(db.String(16), default="#7d1020", nullable=False)
+    accent_color = db.Column(db.String(16), default="#b88a3b", nullable=False)
+    show_profile_image = db.Column(db.Boolean, default=True, nullable=False)
+    closing_message = db.Column(db.String(255), nullable=True)
+    is_published = db.Column(db.Boolean, default=False, nullable=False)
+    share_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    items = db.relationship("ProgrammeItem", backref="programme", lazy=True, cascade="all, delete-orphan", order_by="ProgrammeItem.position")
+
+
+class ProgrammeItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    programme_id = db.Column(db.Integer, db.ForeignKey("wedding_programme.id"), nullable=False, index=True)
+    position = db.Column(db.Integer, default=0, nullable=False)
+    time_label = db.Column(db.String(30), nullable=True)
+    activity = db.Column(db.String(180), nullable=False)
+    person_or_group = db.Column(db.String(160), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    show_to_guests = db.Column(db.Boolean, default=True, nullable=False)
+
+
+class InvitationCardDesign(db.Model):
+    """Advanced-plan invitation-card design settings; card editor comes next."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    wedding_id = db.Column(db.Integer, db.ForeignKey("wedding.id"), unique=True, nullable=False, index=True)
+    template_key = db.Column(db.String(40), default="floral_elegant", nullable=False)
+    font_style = db.Column(db.String(40), default="elegant", nullable=False)
+    primary_color = db.Column(db.String(16), default="#7d1020", nullable=False)
+    accent_color = db.Column(db.String(16), default="#b88a3b", nullable=False)
+    show_profile_image = db.Column(db.Boolean, default=True, nullable=False)
+    message = db.Column(db.Text, nullable=True)
+    is_published = db.Column(db.Boolean, default=False, nullable=False)
+    share_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class ActivityEvent(db.Model):
