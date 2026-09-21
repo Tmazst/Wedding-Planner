@@ -1,15 +1,43 @@
 <article class="programme-card template-{{ programme.template_key }} font-{{ programme.font_style }}" data-programme-card style="--programme-primary: {{ programme.primary_color }}; --programme-accent: {{ programme.accent_color }};">
   <div class="programme-border"></div>
   <div class="programme-floral programme-floral-top" aria-hidden="true">
-    <svg viewBox="0 0 220 220" role="img"><path d="M23 198c25-55 61-100 121-142-31 45-56 92-67 140-5-33-2-65 13-96-23 24-42 54-52 89 2-21 10-44 25-67-17 16-30 35-40 56z"/><circle cx="148" cy="54" r="13"/><circle cx="173" cy="85" r="9"/><path d="M109 87c15-25 36-40 63-49-10 16-26 31-46 42 18-2 36 1 53 9-23 3-47 2-70-2z"/></svg>
+    <svg viewBox="0 0 180 180" role="img">
+      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 168C42 122 64 86 110 42"/>
+        <path d="M44 124C62 118 78 106 88 90"/>
+        <path d="M66 92C82 86 95 76 104 64"/>
+      </g>
+      <g fill="currentColor">
+        <path d="M36 134c18-4 30-15 38-32-19 2-32 12-38 32z"/>
+        <path d="M57 105c16-3 27-12 35-27-17 1-29 9-35 27z"/>
+        <path d="M83 78c14-4 23-11 29-23-14 1-24 8-29 23z"/>
+        <path d="M94 56c7-16 19-25 36-27-5 17-17 27-36 27z"/>
+        <circle cx="119" cy="39" r="8"/>
+        <circle cx="134" cy="54" r="5"/>
+      </g>
+    </svg>
   </div>
   <div class="programme-floral programme-floral-bottom" aria-hidden="true">
-    <svg viewBox="0 0 220 220" role="img"><path d="M23 198c25-55 61-100 121-142-31 45-56 92-67 140-5-33-2-65 13-96-23 24-42 54-52 89 2-21 10-44 25-67-17 16-30 35-40 56z"/><circle cx="148" cy="54" r="13"/><circle cx="173" cy="85" r="9"/><path d="M109 87c15-25 36-40 63-49-10 16-26 31-46 42 18-2 36 1 53 9-23 3-47 2-70-2z"/></svg>
+    <svg viewBox="0 0 180 180" role="img">
+      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 168C42 122 64 86 110 42"/>
+        <path d="M44 124C62 118 78 106 88 90"/>
+        <path d="M66 92C82 86 95 76 104 64"/>
+      </g>
+      <g fill="currentColor">
+        <path d="M36 134c18-4 30-15 38-32-19 2-32 12-38 32z"/>
+        <path d="M57 105c16-3 27-12 35-27-17 1-29 9-35 27z"/>
+        <path d="M83 78c14-4 23-11 29-23-14 1-24 8-29 23z"/>
+        <path d="M94 56c7-16 19-25 36-27-5 17-17 27-36 27z"/>
+        <circle cx="119" cy="39" r="8"/>
+        <circle cx="134" cy="54" r="5"/>
+      </g>
+    </svg>
   </div>
 
   <div class="programme-card-content">
     {% if programme.show_profile_image and wedding.profile_image %}
-      <img class="programme-couple-photo" src="{{ url_for('advanced.shared_programme_photo', token=programme.share_token) if public_programme|default(false) else url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
+      <img class="programme-couple-photo" src="{{ photo_url if photo_url is defined else url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
     {% endif %}
     <p class="programme-kicker">Together forever</p>
     <h2 class="programme-couple-names">{{ wedding.partner_one }} <span>&amp;</span> {{ wedding.partner_two }}</h2>

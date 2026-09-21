@@ -89,5 +89,13 @@
     {% include "advanced/_programme_card.html" %}
   </aside>
 </div>
+
+<button class="programme-mobile-preview-button" type="button" data-programme-preview-open aria-controls="programme-preview-modal" aria-expanded="false"><i class="fa-solid fa-eye" aria-hidden="true"></i> Preview programme</button>
+<div class="programme-preview-modal" id="programme-preview-modal" data-programme-preview-modal aria-hidden="true">
+  <button class="programme-preview-close" type="button" data-programme-preview-close aria-label="Close programme preview"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+  <div class="programme-preview-modal-panel" role="dialog" aria-modal="true" aria-label="Programme preview">
+    {% include "advanced/_programme_card.html" %}
+  </div>
+</div>
 {% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='js/programme-preview.js') }}" defer></script>{% endblock %}
