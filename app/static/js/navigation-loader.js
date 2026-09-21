@@ -17,6 +17,7 @@
   };
 
   document.addEventListener("submit", (event) => {
+    if (event.defaultPrevented) return;
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || form.dataset.noLoader !== undefined) return;
     const submitter = event.submitter;
