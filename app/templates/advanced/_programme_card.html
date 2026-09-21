@@ -9,7 +9,7 @@
 
   <div class="programme-card-content">
     {% if programme.show_profile_image and wedding.profile_image %}
-      <img class="programme-couple-photo" src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
+      <img class="programme-couple-photo" src="{{ url_for('advanced.shared_programme_photo', token=programme.share_token) if public_programme|default(false) else url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
     {% endif %}
     <p class="programme-kicker">Together forever</p>
     <h2 class="programme-couple-names">{{ wedding.partner_one }} <span>&amp;</span> {{ wedding.partner_two }}</h2>
