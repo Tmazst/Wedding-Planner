@@ -1,6 +1,7 @@
 import secrets
+from pathlib import Path
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import select
 
@@ -64,6 +65,17 @@ def _valid_hex(value, fallback):
         except ValueError:
             pass
     return fallback
+
+
+def _published_programme(token):
+    if not current_app.config["ADVANCED_PLAN_ENABLED"] or not current_app.config["ADVANCED_PROGRAMME_ENABLED"]:
+        return None
+    return db.session.scalar(
+        select(WeddingProgramme).where(
+            WeddingProgramme.share_token == token,
+            WeddingProgramme.is_published.is_(True),
+        )
+    )
 
 
 @bp.get("")
@@ -177,11 +189,12 @@ def programme_move_item(item_id):
     items = list(programme.items)
     index = next((i for i, current in enumerate(items) if current.id == item.id), None)
     direction = request.form.get("direction")
-    target_index = index - 1 if direction == "up" else index + 1
-    if index is not None and 0 <= target_index < len(items):
-        other = items[target_index]
-        item.position, other.position = other.position, item.position
-        db.session.commit()
+    if index is not None:
+        target_index = index - 1 if direction == "up" else index + 1
+        if 0 <= target_index < len(items):
+            other = items[target_index]
+            item.position, other.position = other.position, item.position
+            db.session.commit()
     return redirect(url_for("advanced.programme"))
 
 
@@ -223,21 +236,31 @@ def programme_publish():
 
 @bp.get("/programme/share/<token>")
 def shared_programme(token):
-    if not current_app.config["ADVANCED_PLAN_ENABLED"] or not current_app.config["ADVANCED_PROGRAMME_ENABLED"]:
-        return ("Not found", 404)
-    programme = db.session.scalar(
-        select(WeddingProgramme).where(
-            WeddingProgramme.share_token == token,
-            WeddingProgramme.is_published.is_(True),
-        )
-    )
+    programme = _published_programme(token)
     if programme is None:
         return ("Not found", 404)
     return render_template(
         "advanced/programme_shared.html",
         wedding=programme.wedding,
         programme=programme,
+        public_programme=True,
     )
+
+
+@bp.get("/programme/share/<token>/photo")
+def shared_programme_photo(token):
+    programme = _published_programme(token)
+    if programme is None or not programme.show_profile_image or not programme.wedding.profile_image:
+        return ("Not found", 404)
+    relative_path = Path(programme.wedding.profile_image)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        return ("Not found", 404)
+    photo_path = Path(current_app.config["WEDDING_PHOTO_FOLDER"]).parent / relative_path
+    if not photo_path.is_file():
+        return ("Not found", 404)
+    response = send_file(photo_path, mimetype="image/jpeg", conditional=True)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 @bp.get("/invitation-card")
