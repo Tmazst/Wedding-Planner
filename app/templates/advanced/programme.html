@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Wedding Programme · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow">Advanced · Programme</p>
+  <h1>{{ programme.title if programme else 'Wedding Programme' }}</h1>
+  <p>This is the lightweight programme-design scaffold. The final designer will use HTML/CSS/SVG templates rather than a heavy canvas editor.</p>
+</section>
+
+<section class="card">
+  <h2>Default couple image</h2>
+  {% if wedding.profile_image %}
+    <img src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }} couple profile" style="width:180px;height:180px;object-fit:cover;border-radius:50%;">
+    <p>The existing wedding profile image is automatically selected for the programme.</p>
+  {% else %}
+    <p>No couple profile image is uploaded yet. The programme can still render without a photo.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Design defaults</h2>
+  {% if programme %}
+  <dl>
+    <dt>Template</dt><dd>{{ programme.template_key.replace('_', ' ')|title }}</dd>
+    <dt>Font style</dt><dd>{{ programme.font_style|title }}</dd>
+    <dt>Primary colour</dt><dd>{{ programme.primary_color }}</dd>
+    <dt>Accent colour</dt><dd>{{ programme.accent_color }}</dd>
+    <dt>Profile photo</dt><dd>{{ 'Shown' if programme.show_profile_image else 'Hidden' }}</dd>
+  </dl>
+  {% endif %}
+  <p><strong>Next build step:</strong> programme items, reordering, floral template previews, font selection, theme colours, guest sharing and PDF export.</p>
+</section>
+{% endblock %}
