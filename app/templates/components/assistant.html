@@ -14,7 +14,7 @@
     <button type="button" data-assistant-prompt="Which budget items do not have quotations yet?">Missing quotations</button>
     <button type="button" data-assistant-prompt="Explain how I invite a stakeholder.">Inviting stakeholders</button>
   </div>
-  <form class="assistant-form" id="assistant-form" data-message-url="{{ url_for('assistant.message') }}" data-confirm-url="{{ url_for('assistant.confirm') }}" data-csrf-token="{{ csrf_token() }}">
+  <form class="assistant-form" id="assistant-form" data-no-loader data-message-url="{{ url_for('assistant.message') }}" data-confirm-url="{{ url_for('assistant.confirm') }}" data-csrf-token="{{ csrf_token() }}">
     <label class="sr-only" for="assistant-input">Message the UMSHADO Planning Assistant</label>
     <textarea id="assistant-input" maxlength="1200" rows="2" placeholder="Ask about your wedding project…" required></textarea>
     <button type="submit" aria-label="Send message"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
