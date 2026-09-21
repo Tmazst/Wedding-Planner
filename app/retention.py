@@ -9,7 +9,7 @@ import click
 from sqlalchemy import delete, select
 
 from .extensions import db
-from .models import AppVisit, Invitation, Payment
+from .models import AppVisit, AssistantPendingAction, Invitation, Payment
 
 
 def _rewrite_recent_lines(path, cutoff, timestamp_reader):
@@ -67,6 +67,9 @@ def register_retention_command(app):
                 Invitation.id.not_in(paid_invitation_ids),
             )
         ).rowcount
+        deleted_assistant_actions = db.session.execute(
+            delete(AssistantPendingAction).where(AssistantPendingAction.expires_at < now)
+        ).rowcount
         db.session.commit()
 
         analytics_cutoff = now - timedelta(days=app.config["ANALYTICS_RETENTION_DAYS"])
@@ -104,6 +107,7 @@ def register_retention_command(app):
         click.echo(
             "Retention cleanup complete: "
             f"{deleted_visits or 0} visits, {deleted_invitations or 0} invitations, "
+            f"{deleted_assistant_actions or 0} expired assistant confirmations, "
             f"{analytics_removed} analytics events, {payment_removed} payment log entries "
             f"and {security_removed} security log entries removed."
         )

@@ -108,7 +108,7 @@ def create_app(config_class=Config):
         if request.endpoint == "mojapos_payments.mojapos_callback":
             return None
         expected = session.get("csrf_token", "")
-        supplied = request.form.get("csrf_token", "")
+        supplied = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
         if not expected or not hmac.compare_digest(expected, supplied):
             # Do not redirect login/register POSTs back to another login page.
             # A rejected form now stops here and shows the explicit token error.
@@ -160,6 +160,9 @@ def create_app(config_class=Config):
 
     from .admin import bp as admin_bp
     app.register_blueprint(admin_bp)
+
+    from .assistant import bp as assistant_bp
+    app.register_blueprint(assistant_bp)
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)

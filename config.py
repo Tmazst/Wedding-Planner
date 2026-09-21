@@ -53,8 +53,8 @@ class Config:
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     WEDDING_PHOTO_FOLDER = BASE_DIR / "instance" / "uploads" / "weddings"
     LEGACY_WEDDING_PHOTO_FOLDER = BASE_DIR / "app" / "static" / "uploads" / "weddings"
-    TERMS_VERSION = "2026-09-18"
-    PRIVACY_VERSION = "2026-09-18"
+    TERMS_VERSION = "2026-09-21"
+    PRIVACY_VERSION = "2026-09-21"
     APP_VISIT_RETENTION_DAYS = int(os.getenv("APP_VISIT_RETENTION_DAYS", "90"))
     ANALYTICS_RETENTION_DAYS = int(os.getenv("ANALYTICS_RETENTION_DAYS", "90"))
     PAYMENT_LOG_RETENTION_DAYS = int(os.getenv("PAYMENT_LOG_RETENTION_DAYS", "90"))
@@ -62,6 +62,13 @@ class Config:
     EXPIRED_INVITATION_RETENTION_DAYS = int(
         os.getenv("EXPIRED_INVITATION_RETENTION_DAYS", "90")
     )
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or None
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
+    ASSISTANT_ENABLED = os.getenv("ASSISTANT_ENABLED", "true").lower() in {
+        "1", "true", "yes", "on"
+    }
+    ASSISTANT_MAX_MESSAGE_LENGTH = int(os.getenv("ASSISTANT_MAX_MESSAGE_LENGTH", "1200"))
+    ASSISTANT_REQUEST_LIMIT = int(os.getenv("ASSISTANT_REQUEST_LIMIT", "20"))
     # Set to redis://127.0.0.1:6379/0 if realtime events must cross processes.
     SOCKETIO_MESSAGE_QUEUE = os.getenv("SOCKETIO_MESSAGE_QUEUE") or None
     SOCKETIO_CORS_ALLOWED_ORIGINS = None

@@ -169,3 +169,24 @@ class Payment(db.Model):
     user = db.relationship("User", foreign_keys=[user_id])
     wedding = db.relationship("Wedding", foreign_keys=[wedding_id])
     invitation = db.relationship("Invitation", foreign_keys=[invitation_id])
+
+
+class AssistantPendingAction(db.Model):
+    """Short-lived, server-side confirmation for an assistant write action."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    token_hash = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    action = db.Column(db.String(50), nullable=False)
+    payload = db.Column(db.JSON, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    wedding_id = db.Column(db.Integer, db.ForeignKey("wedding.id"), nullable=False, index=True)
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    wedding = db.relationship("Wedding", foreign_keys=[wedding_id])
