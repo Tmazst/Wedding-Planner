@@ -8,6 +8,10 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 
+def env_bool(name, default=False):
+    return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
 
@@ -18,9 +22,7 @@ class Config:
     SESSION_COOKIE_PATH = "/"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "true").lower() in {
-        "1", "true", "yes", "on"
-    }
+    SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = "Lax"
     REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
@@ -32,21 +34,25 @@ class Config:
     FREE_BUDGET_ITEM_LIMIT = int(os.getenv("FREE_BUDGET_ITEM_LIMIT", "4"))
     OWNER_PLAN_PRICE = os.getenv("OWNER_PLAN_PRICE", "60.00")
     STAKEHOLDER_PRICE = os.getenv("STAKEHOLDER_PRICE", "30.00")
+
+    # Advanced is deliberately feature-flagged so the code can be deployed
+    # before the programme/invitation designers are opened to customers.
+    ADVANCED_PLAN_ENABLED = env_bool("ADVANCED_PLAN_ENABLED", False)
+    ADVANCED_PLAN_PRICE = os.getenv("ADVANCED_PLAN_PRICE", "250.00")
+    ADVANCED_PROGRAMME_ENABLED = env_bool("ADVANCED_PROGRAMME_ENABLED", True)
+    ADVANCED_INVITATION_CARD_ENABLED = env_bool("ADVANCED_INVITATION_CARD_ENABLED", True)
+
     PAYMENT_CURRENCY = os.getenv("MOJAPOS_CURRENCY", "SZL")
     MOJAPOS_SUPPORTED_COUNTRIES = tuple(
         country.strip().upper()
         for country in os.getenv("MOJAPOS_SUPPORTED_COUNTRIES", "SZ").split(",")
         if country.strip()
     )
-    MOJAPOS_MOCK_AUTO_COMPLETE = os.getenv(
-        "MOJAPOS_MOCK_AUTO_COMPLETE", "false"
-    ).lower() in {"1", "true", "yes", "on"}
+    MOJAPOS_MOCK_AUTO_COMPLETE = env_bool("MOJAPOS_MOCK_AUTO_COMPLETE", False)
     CSRF_PROTECT = True
 
     # Lightweight request diagnostics are stored in rotating files, not SQLite.
-    ANALYTICS_ENABLED = os.getenv("ANALYTICS_ENABLED", "true").lower() in {
-        "1", "true", "yes", "on"
-    }
+    ANALYTICS_ENABLED = env_bool("ANALYTICS_ENABLED", True)
     ANALYTICS_LOG_PATH = os.getenv("ANALYTICS_LOG_PATH") or None
     ANALYTICS_LOG_MAX_BYTES = int(os.getenv("ANALYTICS_LOG_MAX_BYTES", str(2 * 1024 * 1024)))
     ANALYTICS_LOG_BACKUP_COUNT = int(os.getenv("ANALYTICS_LOG_BACKUP_COUNT", "3"))
@@ -64,9 +70,7 @@ class Config:
     )
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or None
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
-    ASSISTANT_ENABLED = os.getenv("ASSISTANT_ENABLED", "true").lower() in {
-        "1", "true", "yes", "on"
-    }
+    ASSISTANT_ENABLED = env_bool("ASSISTANT_ENABLED", True)
     ASSISTANT_MAX_MESSAGE_LENGTH = int(os.getenv("ASSISTANT_MAX_MESSAGE_LENGTH", "1200"))
     ASSISTANT_REQUEST_LIMIT = int(os.getenv("ASSISTANT_REQUEST_LIMIT", "20"))
     # Set to redis://127.0.0.1:6379/0 if realtime events must cross processes.
