@@ -1,0 +1,37 @@
+<article class="programme-card template-{{ programme.template_key }} font-{{ programme.font_style }}" data-programme-card style="--programme-primary: {{ programme.primary_color }}; --programme-accent: {{ programme.accent_color }};">
+  <div class="programme-border"></div>
+  <div class="programme-floral programme-floral-top" aria-hidden="true">
+    <svg viewBox="0 0 220 220" role="img"><path d="M23 198c25-55 61-100 121-142-31 45-56 92-67 140-5-33-2-65 13-96-23 24-42 54-52 89 2-21 10-44 25-67-17 16-30 35-40 56z"/><circle cx="148" cy="54" r="13"/><circle cx="173" cy="85" r="9"/><path d="M109 87c15-25 36-40 63-49-10 16-26 31-46 42 18-2 36 1 53 9-23 3-47 2-70-2z"/></svg>
+  </div>
+  <div class="programme-floral programme-floral-bottom" aria-hidden="true">
+    <svg viewBox="0 0 220 220" role="img"><path d="M23 198c25-55 61-100 121-142-31 45-56 92-67 140-5-33-2-65 13-96-23 24-42 54-52 89 2-21 10-44 25-67-17 16-30 35-40 56z"/><circle cx="148" cy="54" r="13"/><circle cx="173" cy="85" r="9"/><path d="M109 87c15-25 36-40 63-49-10 16-26 31-46 42 18-2 36 1 53 9-23 3-47 2-70-2z"/></svg>
+  </div>
+
+  <div class="programme-card-content">
+    {% if programme.show_profile_image and wedding.profile_image %}
+      <img class="programme-couple-photo" src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
+    {% endif %}
+    <p class="programme-kicker">Together forever</p>
+    <h2 class="programme-couple-names">{{ wedding.partner_one }} <span>&amp;</span> {{ wedding.partner_two }}</h2>
+    <h3 class="programme-title" data-preview-title>{{ programme.title }}</h3>
+    {% if wedding.wedding_date %}<p class="programme-date">{{ wedding.wedding_date.strftime('%d %B %Y') }}</p>{% endif %}
+    {% if wedding.location %}<p class="programme-location">{{ wedding.location }}</p>{% endif %}
+    <div class="programme-divider"><span>♡</span></div>
+
+    <div class="programme-timeline">
+      {% for item in programme.items if item.show_to_guests %}
+      <div class="programme-timeline-row">
+        <time>{{ item.time_label or '' }}</time>
+        <span class="programme-dot"></span>
+        <div><strong>{{ item.activity }}</strong>{% if item.person_or_group %}<small>{{ item.person_or_group }}</small>{% endif %}</div>
+      </div>
+      {% else %}
+      <div class="programme-empty-preview">Your guest programme activities will appear here.</div>
+      {% endfor %}
+    </div>
+
+    <div class="programme-divider lower"><span>♡</span></div>
+    <p class="programme-thanks">Thank You</p>
+    <p class="programme-closing" data-preview-closing>{{ programme.closing_message or 'For being part of our special day.' }}</p>
+  </div>
+</article>
