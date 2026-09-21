@@ -16,12 +16,19 @@ from .payment_logging import payment_event
 from .routes import current_wedding
 
 
-
 bp = Blueprint("billing", __name__)
 
 
 def configured_price(key):
     return Decimal(current_app.config[key]).quantize(Decimal("0.01"))
+
+
+def advanced_upgrade_price(wedding):
+    """Charge only the difference when a Standard project moves to Advanced."""
+    advanced = configured_price("ADVANCED_PLAN_PRICE")
+    if wedding and wedding.plan_tier == "standard":
+        return max(Decimal("0.00"), advanced - configured_price("OWNER_PLAN_PRICE"))
+    return advanced
 
 
 def payment_country_supported(user=None):
@@ -54,7 +61,7 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
         status="pending",
     )
     db.session.add(payment)
-    db.session.commit()  # webhook must be able to find this row before the API call
+    db.session.commit()
 
     gateway = current_app.extensions["mojapos_payments"]
     mode = 'mock' if gateway.service.config.mock_mode else 'live'
@@ -95,6 +102,11 @@ def pricing():
         "billing/pricing.html", wedding=wedding,
         owner_price=configured_price("OWNER_PLAN_PRICE"),
         stakeholder_price=configured_price("STAKEHOLDER_PRICE"),
+        advanced_price=configured_price("ADVANCED_PLAN_PRICE"),
+        advanced_upgrade_price=advanced_upgrade_price(wedding),
+        advanced_plan_enabled=current_app.config["ADVANCED_PLAN_ENABLED"],
+        advanced_programme_enabled=current_app.config["ADVANCED_PROGRAMME_ENABLED"],
+        advanced_invitation_card_enabled=current_app.config["ADVANCED_INVITATION_CARD_ENABLED"],
         free_limit=current_app.config["FREE_BUDGET_ITEM_LIMIT"],
         payment_country_supported=payment_country_supported(),
     )
@@ -120,6 +132,32 @@ def upgrade():
         return redirect(url_for("billing.pricing"))
     payment = create_gateway_payment(
         kind="owner_upgrade", amount=configured_price("OWNER_PLAN_PRICE"), wedding=wedding
+    )
+    return redirect(url_for("billing.payment_status", payment_id=payment.id))
+
+
+@bp.route("/billing/upgrade/advanced", methods=["POST"])
+@login_required
+def upgrade_advanced():
+    wedding = current_wedding()
+    if not current_app.config["ADVANCED_PLAN_ENABLED"]:
+        return ("Not found", 404)
+    if wedding is None or wedding.owner_id != current_user.id:
+        return ("Not found", 404)
+    if wedding.has_advanced_access:
+        flash("Advanced access is already active for this wedding.", "info")
+        return redirect(url_for("advanced.home"))
+    if not current_user.phone_number:
+        flash("Add your MoMo phone number before starting payment.", "info")
+        return redirect(url_for("main.account_phone", next="pricing"))
+    if not payment_country_supported():
+        flash("MojaPOS payments currently require an Eswatini mobile number.", "error")
+        return redirect(url_for("billing.pricing"))
+    if request.form.get("payment_confirmed") != "yes":
+        flash("Please confirm the amount before sending the MoMo request.", "error")
+        return redirect(url_for("billing.pricing"))
+    payment = create_gateway_payment(
+        kind="owner_upgrade_advanced", amount=advanced_upgrade_price(wedding), wedding=wedding
     )
     return redirect(url_for("billing.payment_status", payment_id=payment.id))
 
