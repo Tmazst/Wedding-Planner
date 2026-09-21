@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Invitation Card · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow">Advanced · Invitation Card</p>
+  <h1>Invitation Card</h1>
+  <p>Invitation cards will share the same lightweight template, font and colour system as the wedding programme.</p>
+</section>
+
+<section class="card">
+  <h2>Default couple image</h2>
+  {% if wedding.profile_image %}
+    <img src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }} couple profile" style="width:180px;height:180px;object-fit:cover;border-radius:50%;">
+    <p>The existing wedding profile image is automatically selected for the invitation card.</p>
+  {% else %}
+    <p>No couple profile image is uploaded yet. The invitation can still render without a photo.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Design defaults</h2>
+  {% if design %}
+  <dl>
+    <dt>Template</dt><dd>{{ design.template_key.replace('_', ' ')|title }}</dd>
+    <dt>Font style</dt><dd>{{ design.font_style|title }}</dd>
+    <dt>Primary colour</dt><dd>{{ design.primary_color }}</dd>
+    <dt>Accent colour</dt><dd>{{ design.accent_color }}</dd>
+    <dt>Profile photo</dt><dd>{{ 'Shown' if design.show_profile_image else 'Hidden' }}</dd>
+  </dl>
+  {% endif %}
+  <p><strong>Next build step:</strong> invitation wording, floral templates, font selection, theme colours, share links and PDF export.</p>
+</section>
+{% endblock %}
