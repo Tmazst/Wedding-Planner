@@ -66,6 +66,9 @@ class WeddingPaymentHandler(PaymentHandler):
         if row.kind == "owner_upgrade":
             row.wedding.plan_tier = "standard"
             row.wedding.upgraded_at = datetime.now(timezone.utc)
+        elif row.kind == "owner_upgrade_advanced":
+            row.wedding.plan_tier = "advanced"
+            row.wedding.upgraded_at = datetime.now(timezone.utc)
         elif row.kind in {"owner_pays_invite", "invitee_pays_invite"}:
             invitation = row.invitation
             if invitation is None:
