@@ -19,13 +19,16 @@ from .routes import current_wedding
 bp = Blueprint("billing", __name__)
 
 
-def configured_price(key):
-    return Decimal(current_app.config[key]).quantize(Decimal("0.01"))
+def configured_price(key, default=None):
+    value = current_app.config.get(key, default)
+    if value is None:
+        raise KeyError(key)
+    return Decimal(value).quantize(Decimal("0.01"))
 
 
 def advanced_upgrade_price(wedding):
     """Charge only the difference when a Standard project moves to Advanced."""
-    advanced = configured_price("ADVANCED_PLAN_PRICE")
+    advanced = configured_price("ADVANCED_PLAN_PRICE", "250.00")
     if wedding and wedding.plan_tier == "standard":
         return max(Decimal("0.00"), advanced - configured_price("OWNER_PLAN_PRICE"))
     return advanced
@@ -98,15 +101,16 @@ def create_gateway_payment(*, kind, amount, wedding, invitation=None):
 @login_required
 def pricing():
     wedding = current_wedding()
+    advanced_plan_enabled = current_app.config.get("ADVANCED_PLAN_ENABLED", False)
     return render_template(
         "billing/pricing.html", wedding=wedding,
         owner_price=configured_price("OWNER_PLAN_PRICE"),
         stakeholder_price=configured_price("STAKEHOLDER_PRICE"),
-        advanced_price=configured_price("ADVANCED_PLAN_PRICE"),
+        advanced_price=configured_price("ADVANCED_PLAN_PRICE", "250.00"),
         advanced_upgrade_price=advanced_upgrade_price(wedding),
-        advanced_plan_enabled=current_app.config["ADVANCED_PLAN_ENABLED"],
-        advanced_programme_enabled=current_app.config["ADVANCED_PROGRAMME_ENABLED"],
-        advanced_invitation_card_enabled=current_app.config["ADVANCED_INVITATION_CARD_ENABLED"],
+        advanced_plan_enabled=advanced_plan_enabled,
+        advanced_programme_enabled=current_app.config.get("ADVANCED_PROGRAMME_ENABLED", False),
+        advanced_invitation_card_enabled=current_app.config.get("ADVANCED_INVITATION_CARD_ENABLED", False),
         free_limit=current_app.config["FREE_BUDGET_ITEM_LIMIT"],
         payment_country_supported=payment_country_supported(),
     )
@@ -140,7 +144,7 @@ def upgrade():
 @login_required
 def upgrade_advanced():
     wedding = current_wedding()
-    if not current_app.config["ADVANCED_PLAN_ENABLED"]:
+    if not current_app.config.get("ADVANCED_PLAN_ENABLED", False):
         return ("Not found", 404)
     if wedding is None or wedding.owner_id != current_user.id:
         return ("Not found", 404)
