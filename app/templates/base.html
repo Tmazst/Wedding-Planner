@@ -52,9 +52,10 @@
     <div><strong id="install-title">Keep UMSHADO close</strong><p id="install-description">Install the wedding planner for quick access from your phone.</p><p class="ios-install-help" id="ios-install-help" hidden>Tap <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Share, then choose <strong>Add to Home Screen</strong>.</p></div>
     <button class="button primary" id="install-button" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> Install app</button>
   </aside>
-  <a class="whatsapp-support" href="https://wa.me/26879651471?text=Hello%20UMSHADO%20Support%2C%20I%20need%20help%20with%20the%20wedding%20planner." target="_blank" rel="noopener noreferrer" aria-label="Contact UMSHADO support on WhatsApp" title="WhatsApp support"><!--The phone number 26879651471 was wrong-->
+  <a class="whatsapp-support" href="https://wa.me/26879651471?text=Hello%20UMSHADO%20Support%2C%20I%20need%20help%20with%20the%20wedding%20planner." target="_blank" rel="noopener noreferrer" aria-label="Contact UMSHADO support on WhatsApp" title="WhatsApp support">
     <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Support</span>
   </a>
+  {% if current_user.is_authenticated %}{% include "components/assistant.html" %}{% endif %}
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/ui-actions.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/payment-confirm.js') }}" defer></script>
@@ -62,6 +63,7 @@
   {% if current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/live-activity.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/assistant.js') }}" defer></script>
   {% endif %}
   {% block page_scripts %}{% endblock %}
 </body>

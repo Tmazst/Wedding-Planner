@@ -33,6 +33,8 @@ A simple wedding-planning web app for Eswatini couples. The first MVP focuses on
 - Privacy Notice and Terms acceptance recorded at registration
 - Authenticated couple-photo delivery, account export and privacy-preserving deletion
 - Explicit confirmation before every MoMo request
+- AI Planning Assistant for platform help, project summaries, budgets and quotations
+- Separate, expiring confirmation before every assistant-created project change
 
 ## Run locally
 
@@ -125,6 +127,26 @@ International phone numbers can register, but MoJaPOS self-payment is restricted
 to the comma-separated ISO country codes in `MOJAPOS_SUPPORTED_COUNTRIES` (the
 safe default is `SZ`). Owners with a supported number may still pay for an
 international stakeholder's invitation.
+
+## UMSHADO Planning Assistant
+
+The assistant uses the OpenAI Responses API with function calling. The API key
+must remain in the VPS environment and must never be included in browser code:
+
+```ini
+ASSISTANT_ENABLED=true
+OPENAI_API_KEY=your-server-side-project-key
+OPENAI_MODEL=gpt-5.4-mini
+ASSISTANT_MAX_MESSAGE_LENGTH=1200
+ASSISTANT_REQUEST_LIMIT=20
+```
+
+Assistant conversations are not stored by UMSHADO. Requests use `store=false`.
+Only authorised project data needed for the current request is sent. Write tools
+create a 15-minute server-side confirmation and do not change a project until the
+logged-in user confirms it. Payments, account deletion, permissions and photo
+access are excluded from the assistant. Run `flask --app run db upgrade` after
+deploying to create the pending-confirmation table.
 
 ## Payment tracing during live testing
 

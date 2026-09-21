@@ -13,7 +13,10 @@ from werkzeug.utils import secure_filename
 
 from .activity import add_activity, publish_activity
 from .extensions import db
-from .models import ActivityEvent, BudgetCategory, Invitation, Payment, Quotation, User, Wedding, WeddingMember
+from .models import (
+    ActivityEvent, AssistantPendingAction, BudgetCategory, Invitation,
+    Payment, Quotation, User, Wedding, WeddingMember,
+)
 from .phone_numbers import country_options, normalize_phone
 
 
@@ -42,6 +45,14 @@ def current_wedding():
 def invitation_redirect():
     token = request.form.get("invite_token") or request.args.get("invite") or session.pop("invite_token", None)
     return redirect(url_for("billing.accept_invitation", token=token)) if token else redirect(url_for("main.dashboard"))
+
+
+def legal_acceptance_current(user):
+    return bool(
+        user.terms_accepted_at
+        and user.terms_version == current_app.config["TERMS_VERSION"]
+        and user.privacy_version == current_app.config["PRIVACY_VERSION"]
+    )
 
 
 def report_context(wedding):
@@ -252,7 +263,7 @@ def login():
         user = db.session.scalar(select(User).where(User.email == email))
         if user and user.check_password(request.form.get("password", "")):
             login_user(user)
-            if not user.terms_accepted_at:
+            if not legal_acceptance_current(user):
                 token = request.form.get("invite_token") or request.args.get("invite")
                 if token:
                     session["post_legal_invite"] = token
@@ -427,6 +438,9 @@ def delete_account():
     from .security_logging import security_event
     security_event("account_deletion", user_id=user_id)
     owned_weddings = db.session.scalars(select(Wedding).where(Wedding.owner_id == user_id)).all()
+    db.session.execute(
+        delete(AssistantPendingAction).where(AssistantPendingAction.user_id == user_id)
+    )
     for wedding in owned_weddings:
         if wedding.profile_image:
             photo_path = Path(current_app.config["WEDDING_PHOTO_FOLDER"]).parent / wedding.profile_image

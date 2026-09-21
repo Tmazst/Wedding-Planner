@@ -6,7 +6,10 @@ from sqlalchemy import select
 
 from app import create_app
 from app.extensions import db, socketio
-from app.models import AppVisit, ActivityEvent, BudgetCategory, Invitation, Payment, User, Wedding, WeddingMember
+from app.models import (
+    AppVisit, ActivityEvent, AssistantPendingAction, BudgetCategory,
+    Invitation, Payment, Quotation, User, Wedding, WeddingMember,
+)
 
 
 class TestConfig:
@@ -159,6 +162,8 @@ def test_legal_pages_and_registration_consent_are_available(app, client):
     assert b"Information visible to wedding your stakeholders" in privacy.data
     assert b"E60" in terms.data
     assert b"limited to that one wedding project" in terms.data
+    assert b"OpenAI" in privacy.data
+    assert b"Planning Assistant" in terms.data
     assert b"Terms of Use" in signup.data and b"Privacy Notice" in signup.data
 
     rejected = client.post("/register", data={
@@ -256,6 +261,126 @@ def test_free_limit_and_budget_totals(app, client):
     assert b"E8,500.00" in budget.data
     with app.app_context():
         assert len(db.session.scalar(select(Wedding)).categories) == 4
+
+
+def test_assistant_proposes_then_confirms_budget_change(app, client):
+    from types import SimpleNamespace
+
+    create_owner_wedding(client)
+    app.config["OPENAI_API_KEY"] = "test-key-not-real"
+
+    class FakeResponses:
+        def __init__(self):
+            self.requests = []
+
+        def create(self, **kwargs):
+            self.requests.append(kwargs)
+            return SimpleNamespace(
+                output=[SimpleNamespace(
+                    type="function_call",
+                    name="propose_add_budget_item",
+                    arguments='{"name":"Wedding cake","planned_amount":4500}',
+                    call_id="call_test",
+                )],
+                output_text="",
+            )
+
+    responses = FakeResponses()
+    app.extensions["openai_client"] = SimpleNamespace(responses=responses)
+
+    page = client.get("/dashboard")
+    assert b"Ask UMSHADO" in page.data
+    proposed = client.post("/assistant/message", json={
+        "message": "Add a wedding cake budget of E4,500.",
+        "history": [],
+    })
+    assert proposed.status_code == 200
+    assert proposed.json["confirmation"]["summary"] == (
+        "Add Wedding cake to the budget with a planned amount of E4,500.00?"
+    )
+    assert responses.requests[0]["store"] is False
+    with app.app_context():
+        assert db.session.scalar(select(BudgetCategory)) is None
+        assert db.session.scalar(select(AssistantPendingAction)) is not None
+
+    confirmed = client.post("/assistant/confirm", json={
+        "token": proposed.json["confirmation"]["token"],
+    })
+    assert confirmed.status_code == 200
+    assert "Wedding cake has been added" in confirmed.json["reply"]
+    with app.app_context():
+        item = db.session.scalar(select(BudgetCategory))
+        assert item.name == "Wedding cake"
+        assert str(item.planned_amount) == "4500.00"
+        assert db.session.scalar(select(AssistantPendingAction)) is None
+        activity = db.session.scalar(
+            select(ActivityEvent).where(ActivityEvent.kind == "assistant_budget_item_added")
+        )
+        assert activity is not None
+
+    reused = client.post("/assistant/confirm", json={
+        "token": proposed.json["confirmation"]["token"],
+    })
+    assert reused.status_code == 400
+
+
+def test_assistant_is_private_and_graceful_without_api_key(app, client):
+    assert client.post("/assistant/message", json={"message": "Help me"}).status_code == 302
+    create_owner_wedding(client)
+    response = client.post("/assistant/message", json={"message": "Summarise my wedding."})
+    assert response.status_code == 503
+    assert "not been configured" in response.json["error"]
+
+
+def test_assistant_reads_authorised_project_data_before_answering(app, client):
+    from types import SimpleNamespace
+
+    create_owner_wedding(client)
+    client.post("/budget", data={"name": "Venue", "planned_amount": "20000"})
+    app.config["OPENAI_API_KEY"] = "test-key-not-real"
+
+    class FakeCall:
+        type = "function_call"
+        name = "get_project_summary"
+        arguments = "{}"
+        call_id = "call_summary"
+
+        def model_dump(self, **kwargs):
+            return {
+                "type": self.type,
+                "name": self.name,
+                "arguments": self.arguments,
+                "call_id": self.call_id,
+            }
+
+    class FakeResponses:
+        def __init__(self):
+            self.requests = []
+
+        def create(self, **kwargs):
+            self.requests.append(kwargs)
+            if len(self.requests) == 1:
+                return SimpleNamespace(output=[FakeCall()], output_text="")
+            return SimpleNamespace(
+                output=[SimpleNamespace(type="message")],
+                output_text="Your wedding budget target is E80,000.",
+            )
+
+    responses = FakeResponses()
+    app.extensions["openai_client"] = SimpleNamespace(responses=responses)
+    answer = client.post("/assistant/message", json={
+        "message": "What is my wedding budget?",
+        "history": [],
+    })
+    assert answer.status_code == 200
+    assert answer.json["reply"] == "Your wedding budget target is E80,000."
+    assert len(responses.requests) == 2
+    tool_outputs = [
+        item for item in responses.requests[1]["input"]
+        if isinstance(item, dict) and item.get("type") == "function_call_output"
+    ]
+    assert len(tool_outputs) == 1
+    assert '"budget_target": "80000.00"' in tool_outputs[0]["output"]
 
 
 def test_unrestricted_test_owner_bypasses_plan_and_invitation_payments(app, client):
