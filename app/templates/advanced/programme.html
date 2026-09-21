@@ -1,33 +1,93 @@
 {% extends "base.html" %}
 {% block title %}Wedding Programme · UMSHADO{% endblock %}
-{% block content %}
-<section class="page-heading">
-  <p class="eyebrow">Advanced · Programme</p>
-  <h1>{{ programme.title if programme else 'Wedding Programme' }}</h1>
-  <p>This is the lightweight programme-design scaffold. The final designer will use HTML/CSS/SVG templates rather than a heavy canvas editor.</p>
-</section>
-
-<section class="card">
-  <h2>Default couple image</h2>
-  {% if wedding.profile_image %}
-    <img src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }} couple profile" style="width:180px;height:180px;object-fit:cover;border-radius:50%;">
-    <p>The existing wedding profile image is automatically selected for the programme.</p>
-  {% else %}
-    <p>No couple profile image is uploaded yet. The programme can still render without a photo.</p>
-  {% endif %}
-</section>
-
-<section class="card">
-  <h2>Design defaults</h2>
-  {% if programme %}
-  <dl>
-    <dt>Template</dt><dd>{{ programme.template_key.replace('_', ' ')|title }}</dd>
-    <dt>Font style</dt><dd>{{ programme.font_style|title }}</dd>
-    <dt>Primary colour</dt><dd>{{ programme.primary_color }}</dd>
-    <dt>Accent colour</dt><dd>{{ programme.accent_color }}</dd>
-    <dt>Profile photo</dt><dd>{{ 'Shown' if programme.show_profile_image else 'Hidden' }}</dd>
-  </dl>
-  {% endif %}
-  <p><strong>Next build step:</strong> programme items, reordering, floral template previews, font selection, theme colours, guest sharing and PDF export.</p>
-</section>
+{% block page_styles %}
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/programme.css') }}">
 {% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div>
+    <p class="eyebrow">Advanced · Programme</p>
+    <h1>Programme Creator</h1>
+    <p>Build the running order, choose a style and preview the guest-facing programme instantly.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('advanced.home') }}">Back to Advanced</a>
+</section>
+
+<div class="programme-builder">
+  <section class="programme-controls">
+    {% if is_owner %}
+    <form class="card compact programme-settings" method="post" action="{{ url_for('advanced.programme_design') }}" data-programme-settings>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2>Design</h2>
+      <label>Programme title<input type="text" name="title" value="{{ programme.title }}" maxlength="160"></label>
+      <label>Template<select name="template_key">{% for value, label in template_options.items() %}<option value="{{ value }}" {% if programme.template_key == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Font style<select name="font_style">{% for value, label in font_options.items() %}<option value="{{ value }}" {% if programme.font_style == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <div class="programme-colours">
+        <label>Wedding colour<input type="color" name="primary_color" value="{{ programme.primary_color }}"></label>
+        <label>Accent<input type="color" name="accent_color" value="{{ programme.accent_color }}"></label>
+      </div>
+      <label class="programme-check"><input type="checkbox" name="show_profile_image" value="yes" {% if programme.show_profile_image %}checked{% endif %}> Use couple profile image</label>
+      <label>Closing message<textarea name="closing_message" rows="3" maxlength="255" placeholder="Thank you for celebrating with us.">{{ programme.closing_message or '' }}</textarea></label>
+      <button class="button primary" type="submit">Save design</button>
+    </form>
+
+    <form class="card compact programme-item-form" method="post" action="{{ url_for('advanced.programme_add_item') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2>Add activity</h2>
+      <div class="programme-item-grid">
+        <label>Time<input name="time_label" type="text" placeholder="13:30" maxlength="30"></label>
+        <label>Activity<input name="activity" type="text" placeholder="Bridal party entrance" maxlength="180" required></label>
+      </div>
+      <label>Person / group <span class="muted">(optional)</span><input name="person_or_group" type="text" placeholder="MC, band, family..." maxlength="160"></label>
+      <label>Private notes <span class="muted">(optional)</span><textarea name="notes" rows="2" placeholder="Instructions for organisers only"></textarea></label>
+      <label class="programme-check"><input type="checkbox" name="show_to_guests" value="yes" checked> Show this item on guest programme</label>
+      <button class="button secondary" type="submit">Add to programme</button>
+    </form>
+    {% endif %}
+
+    <section class="card compact">
+      <div class="programme-list-heading"><h2>Running order</h2><span>{{ programme.items|length }} item{{ '' if programme.items|length == 1 else 's' }}</span></div>
+      {% if programme.items %}
+        <div class="programme-item-list">
+        {% for item in programme.items %}
+          <article class="programme-row {% if not item.show_to_guests %}programme-private{% endif %}">
+            <div class="programme-row-time">{{ item.time_label or '—' }}</div>
+            <div class="programme-row-main"><strong>{{ item.activity }}</strong>{% if item.person_or_group %}<small>{{ item.person_or_group }}</small>{% endif %}{% if not item.show_to_guests %}<small>Private / organiser only</small>{% endif %}</div>
+            {% if is_owner %}<div class="programme-row-actions">
+              <form method="post" action="{{ url_for('advanced.programme_move_item', item_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="direction" value="up"><button type="submit" title="Move up">↑</button></form>
+              <form method="post" action="{{ url_for('advanced.programme_move_item', item_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="direction" value="down"><button type="submit" title="Move down">↓</button></form>
+              <form method="post" action="{{ url_for('advanced.programme_delete_item', item_id=item.id) }}" onsubmit="return confirm('Remove this programme activity?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" title="Delete">×</button></form>
+            </div>{% endif %}
+          </article>
+        {% endfor %}
+        </div>
+      {% else %}<p class="muted">No activities yet. Add the first item above.</p>{% endif %}
+    </section>
+
+    {% if is_owner %}
+    <section class="card compact programme-sharing">
+      <h2>Guest sharing</h2>
+      {% if programme.is_published and programme.share_token %}
+        <p>Your programme has a public guest link. Changes you save appear on the same link.</p>
+        <input class="share-link-input" readonly value="{{ url_for('advanced.shared_programme', token=programme.share_token, _external=True) }}" onclick="this.select()">
+        <div class="button-row left-buttons">
+          <a class="button secondary" target="_blank" rel="noopener" href="{{ url_for('advanced.shared_programme', token=programme.share_token) }}">Open guest view</a>
+          <a class="button primary" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('Our wedding programme: ' ~ url_for('advanced.shared_programme', token=programme.share_token, _external=True))|urlencode }}">Share on WhatsApp</a>
+        </div>
+        <form method="post" action="{{ url_for('advanced.programme_publish') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="publish" value="no"><button class="text-link programme-unpublish" type="submit">Disable public link</button></form>
+      {% else %}
+        <p>Publish when you are ready to share the programme with guests.</p>
+        <form method="post" action="{{ url_for('advanced.programme_publish') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="publish" value="yes"><button class="button primary" type="submit">Create guest link</button></form>
+      {% endif %}
+    </section>
+    {% endif %}
+  </section>
+
+  <aside class="programme-preview-column">
+    <div class="programme-preview-label"><span>Live preview</span><small>Profile photo is used automatically</small></div>
+    {% include "advanced/_programme_card.html" %}
+  </aside>
+</div>
+{% endblock %}
+{% block page_scripts %}<script src="{{ url_for('static', filename='js/programme-preview.js') }}" defer></script>{% endblock %}
