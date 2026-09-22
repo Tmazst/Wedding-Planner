@@ -25,6 +25,9 @@ PROGRAMME_FONTS = {
     "modern": "Modern",
 }
 
+INVITATION_TEMPLATES = PROGRAMME_TEMPLATES
+INVITATION_FONTS = PROGRAMME_FONTS
+
 
 def _advanced_wedding():
     if not current_app.config["ADVANCED_PLAN_ENABLED"]:
@@ -56,6 +59,20 @@ def _owner_programme():
     return wedding, programme
 
 
+def _owner_invitation_card():
+    wedding = _advanced_wedding()
+    if wedding is None or not current_app.config["ADVANCED_INVITATION_CARD_ENABLED"]:
+        return None, None
+    if wedding.owner_id != current_user.id:
+        return wedding, None
+    design = wedding.invitation_card
+    if design is None:
+        design = InvitationCardDesign(wedding_id=wedding.id)
+        db.session.add(design)
+        db.session.commit()
+    return wedding, design
+
+
 def _valid_hex(value, fallback):
     value = (value or "").strip()
     if len(value) == 7 and value.startswith("#"):
@@ -76,6 +93,27 @@ def _published_programme(token):
             WeddingProgramme.is_published.is_(True),
         )
     )
+
+
+def _published_invitation_card(token):
+    if not current_app.config["ADVANCED_PLAN_ENABLED"] or not current_app.config["ADVANCED_INVITATION_CARD_ENABLED"]:
+        return None
+    return db.session.scalar(
+        select(InvitationCardDesign).where(
+            InvitationCardDesign.share_token == token,
+            InvitationCardDesign.is_published.is_(True),
+        )
+    )
+
+
+def _public_wedding_photo(wedding):
+    if not wedding.profile_image:
+        return None
+    relative_path = Path(wedding.profile_image)
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        return None
+    photo_path = Path(current_app.config["WEDDING_PHOTO_FOLDER"]).parent / relative_path
+    return photo_path if photo_path.is_file() else None
 
 
 @bp.get("")
@@ -250,13 +288,10 @@ def shared_programme(token):
 @bp.get("/programme/share/<token>/photo")
 def shared_programme_photo(token):
     programme = _published_programme(token)
-    if programme is None or not programme.show_profile_image or not programme.wedding.profile_image:
+    if programme is None or not programme.show_profile_image:
         return ("Not found", 404)
-    relative_path = Path(programme.wedding.profile_image)
-    if relative_path.is_absolute() or ".." in relative_path.parts:
-        return ("Not found", 404)
-    photo_path = Path(current_app.config["WEDDING_PHOTO_FOLDER"]).parent / relative_path
-    if not photo_path.is_file():
+    photo_path = _public_wedding_photo(programme.wedding)
+    if photo_path is None:
         return ("Not found", 404)
     response = send_file(photo_path, mimetype="image/jpeg", conditional=True)
     response.headers["Cache-Control"] = "public, max-age=3600"
@@ -282,4 +317,77 @@ def invitation_card():
         wedding=wedding,
         design=design,
         is_owner=wedding.owner_id == current_user.id,
+        template_options=INVITATION_TEMPLATES,
+        font_options=INVITATION_FONTS,
     )
+
+
+@bp.post("/invitation-card/design")
+@login_required
+def invitation_card_design():
+    wedding, design = _owner_invitation_card()
+    if wedding is None:
+        return ("Not found", 404)
+    locked = _require_advanced(wedding)
+    if locked:
+        return locked
+    if design is None:
+        return ("Not found", 404)
+
+    template_key = request.form.get("template_key", design.template_key)
+    font_style = request.form.get("font_style", design.font_style)
+    if template_key in INVITATION_TEMPLATES:
+        design.template_key = template_key
+    if font_style in INVITATION_FONTS:
+        design.font_style = font_style
+    design.primary_color = _valid_hex(request.form.get("primary_color"), design.primary_color)
+    design.accent_color = _valid_hex(request.form.get("accent_color"), design.accent_color)
+    design.show_profile_image = request.form.get("show_profile_image") == "yes"
+    design.message = (request.form.get("message") or "").strip()[:800] or None
+    db.session.commit()
+    flash("Invitation card design saved.", "success")
+    return redirect(url_for("advanced.invitation_card"))
+
+
+@bp.post("/invitation-card/publish")
+@login_required
+def invitation_card_publish():
+    wedding, design = _owner_invitation_card()
+    if wedding is None:
+        return ("Not found", 404)
+    locked = _require_advanced(wedding)
+    if locked:
+        return locked
+    publish = request.form.get("publish") == "yes"
+    design.is_published = publish
+    if publish and not design.share_token:
+        design.share_token = secrets.token_urlsafe(24)
+    db.session.commit()
+    flash("Invitation sharing enabled." if publish else "Invitation sharing disabled.", "success")
+    return redirect(url_for("advanced.invitation_card"))
+
+
+@bp.get("/invitation-card/share/<token>")
+def shared_invitation_card(token):
+    design = _published_invitation_card(token)
+    if design is None:
+        return ("Not found", 404)
+    return render_template(
+        "advanced/invitation_card_shared.html",
+        wedding=design.wedding,
+        design=design,
+        photo_url=url_for("advanced.shared_invitation_card_photo", token=token),
+    )
+
+
+@bp.get("/invitation-card/share/<token>/photo")
+def shared_invitation_card_photo(token):
+    design = _published_invitation_card(token)
+    if design is None or not design.show_profile_image:
+        return ("Not found", 404)
+    photo_path = _public_wedding_photo(design.wedding)
+    if photo_path is None:
+        return ("Not found", 404)
+    response = send_file(photo_path, mimetype="image/jpeg", conditional=True)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
