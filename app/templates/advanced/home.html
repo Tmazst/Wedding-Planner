@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Advanced · UMSHADO{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-home.css') }}">
+{% endblock %}
 {% block content %}
 <section class="page-heading">
   <p class="eyebrow">Advanced plan</p>
@@ -14,21 +17,43 @@
   <a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Advanced plan</a>
 </section>
 {% else %}
-<section class="pricing-grid">
+<section class="pricing-grid advanced-feature-grid">
   {% if programme_enabled %}
-  <article class="card price-card">
+  <article class="card price-card advanced-feature-card programme-card-tile">
+    <div class="advanced-feature-visual" aria-hidden="true">
+      <div class="mini-wedding-card programme">
+        <span class="mini-floral top"></span>
+        <span class="mini-floral bottom"></span>
+        <span class="mini-photo"></span>
+        <span class="mini-name-line"></span>
+        <span class="mini-title-line"></span>
+        <span class="mini-timeline"><span></span><span></span><span></span></span>
+      </div>
+    </div>
     <span class="plan-label">Programme</span>
     <h2>Guest Programme</h2>
     <p>Build the wedding timeline, then apply floral templates, selected fonts and wedding colours.</p>
-    <a class="button primary" href="{{ url_for('advanced.programme') }}">Open programme</a>
+    <a class="button primary" href="{{ url_for('advanced.programme') }}"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Open programme</a>
   </article>
   {% endif %}
   {% if invitation_card_enabled %}
-  <article class="card price-card">
+  <article class="card price-card advanced-feature-card invitation-card-tile">
+    <div class="advanced-feature-visual" aria-hidden="true">
+      <div class="mini-wedding-card invitation">
+        <span class="mini-floral top"></span>
+        <span class="mini-floral bottom"></span>
+        <span class="mini-photo"></span>
+        <span class="mini-name-line"></span>
+        <span class="mini-title-line"></span>
+        <span class="mini-detail-line one"></span>
+        <span class="mini-detail-line two"></span>
+        <span class="mini-detail-line three"></span>
+      </div>
+    </div>
     <span class="plan-label">Invitation</span>
     <h2>Invitation Card</h2>
     <p>Use the same design system and couple profile image to create a shareable invitation card.</p>
-    <a class="button primary" href="{{ url_for('advanced.invitation_card') }}">Open invitation card</a>
+    <a class="button primary" href="{{ url_for('advanced.invitation_card') }}"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Open invitation card</a>
   </article>
   {% endif %}
 </section>
