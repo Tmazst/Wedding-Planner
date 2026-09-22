@@ -12,9 +12,9 @@
 
 {% if locked %}
 <section style="padding:30px" class="card">
-  <h2>Advanced is not active for this wedding</h2>
+  <h2>Advanced tools are unavailable for your current plan</h2>
   <p>The Advanced plan includes the programme designer and invitation-card designer.</p>
-  <a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> View Advanced plan</a>
+  <a class="button primary" href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> Upgrade to Advanced plan</a>
 </section>
 {% else %}
 <section class="pricing-grid advanced-feature-grid">
