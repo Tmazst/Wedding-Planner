@@ -26,7 +26,7 @@
         <a href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-house" aria-hidden="true"></i> Overview</a>
         <a href="{{ url_for('main.budget') }}"><i class="fa-solid fa-wallet" aria-hidden="true"></i> Budget</a>
         <a href="{{ url_for('main.wedding_report') }}"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Report</a>
-        {% if config.ADVANCED_PLAN_ENABLED %}<a href="{{ url_for('advanced.home') }}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Advanced</a>{% endif %}
+        <!---<a href="{{ url_for('advanced.home') }}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Advanced</a> This should only appear in the price plan--->
         <a href="{{ url_for('billing.pricing') }}"><i class="fa-solid fa-gem" aria-hidden="true"></i> Pricing</a>
         {% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.dashboard') }}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Admin</a>{% endif %}
         <a href="{{ url_for('main.account') }}"><i class="fa-solid fa-circle-user" aria-hidden="true"></i> Account</a>
