@@ -2,6 +2,28 @@
   const form = document.querySelector('[data-invitation-settings]');
   const cards = [...document.querySelectorAll('[data-invitation-card]')];
 
+  const formatDate = (value) => {
+    if (!value) return '';
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) return '';
+    return new Intl.DateTimeFormat('en-GB', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    }).format(new Date(year, month - 1, day));
+  };
+
+  const ensureSelectedFont = async () => {
+    if (!form || !document.fonts) return;
+    const font = form.elements.font_style?.value || 'elegant';
+    const face = font === 'elegant' ? "'Great Vibes'" : font === 'romantic' ? "'Allura'" : null;
+    if (!face) return;
+    try {
+      await document.fonts.load(`27px ${face}`);
+      await document.fonts.ready;
+    } catch (_) {
+      // CSS fallbacks remain available if the web-font request fails.
+    }
+  };
+
   const apply = () => {
     if (!form || !cards.length) return;
     const template = form.elements.template_key?.value || 'floral_elegant';
@@ -10,30 +32,44 @@
     const accent = form.elements.accent_color?.value || '#b88a3b';
     const message = form.elements.message?.value.trim() || 'Request the pleasure of your company as they celebrate their wedding day.';
     const showPhoto = Boolean(form.elements.show_profile_image?.checked);
+    const weddingDate = formatDate(form.elements.wedding_date?.value || '');
 
     cards.forEach((card) => {
       [...card.classList].forEach((name) => {
         if (name.startsWith('template-') || name.startsWith('font-')) card.classList.remove(name);
       });
       card.classList.add(`template-${template}`, `font-${font}`);
+      card.dataset.fontStyle = font;
       card.style.setProperty('--invitation-primary', primary);
       card.style.setProperty('--invitation-accent', accent);
       const messageNode = card.querySelector('[data-invitation-message]');
       if (messageNode) messageNode.textContent = message;
+      const dateNode = card.querySelector('[data-invitation-date]');
+      if (dateNode) {
+        dateNode.textContent = weddingDate;
+        dateNode.hidden = !weddingDate;
+      }
       const photo = card.querySelector('.invitation-photo');
       if (photo) photo.hidden = !showPhoto;
     });
   };
 
   form?.addEventListener('input', apply);
-  form?.addEventListener('change', apply);
+  form?.addEventListener('change', async () => {
+    apply();
+    await ensureSelectedFont();
+    apply();
+  });
   apply();
 
   const modal = document.querySelector('[data-invitation-preview-modal]');
   const openButton = document.querySelector('[data-invitation-preview-open]');
   const closeButton = document.querySelector('[data-invitation-preview-close]');
-  const open = () => {
+  const open = async () => {
     if (!modal) return;
+    apply();
+    await ensureSelectedFont();
+    apply();
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     openButton?.setAttribute('aria-expanded', 'true');
