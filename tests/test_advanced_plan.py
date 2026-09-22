@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app import create_app
 from app.extensions import db
-from app.models import Payment, Wedding
+from app.models import InvitationCardDesign, Payment, Wedding
 
 
 class AdvancedPlanTestConfig:
@@ -138,3 +138,47 @@ def test_standard_owner_pays_only_balance_to_reach_advanced(app, client):
         assert wedding.plan_tier == "advanced"
         assert str(advanced_payment.amount) == "190.00"
         assert advanced_payment.status == "completed"
+
+
+def test_invitation_designer_saves_and_renders_wedding_time(app, client):
+    create_owner_wedding(client)
+    with app.app_context():
+        wedding = db.session.scalar(select(Wedding))
+        wedding.plan_tier = "advanced"
+        db.session.commit()
+
+    page = client.get("/advanced/invitation-card")
+    assert b'name="event_time"' in page.data
+    assert b'name="wedding_date"' not in page.data
+
+    saved = client.post("/advanced/invitation-card/design", data={
+        "template_key": "floral_elegant",
+        "font_style": "elegant",
+        "event_time": "14:30",
+        "primary_color": "#7d1020",
+        "accent_color": "#b88a3b",
+        "show_profile_image": "yes",
+        "message": "Please celebrate with us.",
+    }, follow_redirects=True)
+    assert saved.status_code == 200
+    assert b"14:30" in saved.data
+    with app.app_context():
+        design = db.session.scalar(select(InvitationCardDesign))
+        assert design.event_time == "14:30"
+        assert db.session.scalar(select(Wedding)).wedding_date is None
+
+
+def test_programme_mobile_preview_keeps_elegant_font_hooks(app, client):
+    create_owner_wedding(client)
+    with app.app_context():
+        wedding = db.session.scalar(select(Wedding))
+        wedding.plan_tier = "advanced"
+        db.session.commit()
+
+    page = client.get("/advanced/programme")
+    assert page.status_code == 200
+    assert b"programme-preview-modal" in page.data
+    css = client.get("/static/css/programme-floral-fix.css")
+    js = client.get("/static/js/programme-preview.js")
+    assert b"programme-preview-modal .font-elegant" in css.data
+    assert b"document.fonts.load" in js.data

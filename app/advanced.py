@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
@@ -340,6 +341,15 @@ def invitation_card_design():
         design.template_key = template_key
     if font_style in INVITATION_FONTS:
         design.font_style = font_style
+
+    event_time = (request.form.get("event_time") or "").strip()
+    if event_time:
+        try:
+            datetime.strptime(event_time, "%H:%M")
+        except ValueError:
+            flash("Enter a valid wedding time.", "error")
+            return redirect(url_for("advanced.invitation_card"))
+    design.event_time = event_time or None
     design.primary_color = _valid_hex(request.form.get("primary_color"), design.primary_color)
     design.accent_color = _valid_hex(request.form.get("accent_color"), design.accent_color)
     design.show_profile_image = request.form.get("show_profile_image") == "yes"

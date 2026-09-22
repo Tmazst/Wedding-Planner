@@ -151,7 +151,7 @@ class ProgrammeItem(db.Model):
 
 
 class InvitationCardDesign(db.Model):
-    """Advanced-plan invitation-card design settings; card editor comes next."""
+    """Advanced-plan invitation-card design settings."""
 
     id = db.Column(db.Integer, primary_key=True)
     wedding_id = db.Column(db.Integer, db.ForeignKey("wedding.id"), unique=True, nullable=False, index=True)
@@ -160,6 +160,7 @@ class InvitationCardDesign(db.Model):
     primary_color = db.Column(db.String(16), default="#7d1020", nullable=False)
     accent_color = db.Column(db.String(16), default="#b88a3b", nullable=False)
     show_profile_image = db.Column(db.Boolean, default=True, nullable=False)
+    event_time = db.Column(db.String(10), nullable=True)
     message = db.Column(db.Text, nullable=True)
     is_published = db.Column(db.Boolean, default=False, nullable=False)
     share_token = db.Column(db.String(64), unique=True, nullable=True, index=True)

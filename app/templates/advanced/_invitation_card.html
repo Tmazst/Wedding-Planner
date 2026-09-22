@@ -12,6 +12,7 @@
     <p class="invitation-message" data-invitation-message>{{ design.message or 'Request the pleasure of your company as they celebrate their wedding day.' }}</p>
     <div class="invitation-divider"><span>♡</span></div>
     {% if wedding.wedding_date %}<p class="invitation-date">{{ wedding.wedding_date.strftime('%A, %d %B %Y') }}</p>{% endif %}
+    <p class="invitation-location invitation-time" data-invitation-time {% if not design.event_time %}hidden{% endif %}>{{ design.event_time or '' }}</p>
     {% if wedding.location %}<p class="invitation-location">{{ wedding.location }}</p>{% endif %}
     <p class="invitation-footer">We would be honoured to celebrate with you.</p>
   </div>
