@@ -22,7 +22,7 @@
       <h2>Design</h2>
       <label>Template<select name="template_key">{% for value, label in template_options.items() %}<option value="{{ value }}" {% if design.template_key == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
       <label>Font style<select name="font_style">{% for value, label in font_options.items() %}<option value="{{ value }}" {% if design.font_style == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-      <label>Wedding date<input type="date" name="wedding_date" value="{{ wedding.wedding_date.isoformat() if wedding.wedding_date else '' }}"></label>
+      <label>Wedding time<input type="time" name="event_time" value="{{ design.event_time or '' }}"></label>
       <div class="invitation-colours">
         <label>Wedding colour<input type="color" name="primary_color" value="{{ design.primary_color }}"></label>
         <label>Accent<input type="color" name="accent_color" value="{{ design.accent_color }}"></label>
