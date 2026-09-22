@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app import create_app
 from app.extensions import db
-from app.models import Payment, Wedding
+from app.models import InvitationCardDesign, Payment, Wedding
 
 
 class AdvancedPlanTestConfig:
@@ -140,7 +140,7 @@ def test_standard_owner_pays_only_balance_to_reach_advanced(app, client):
         assert advanced_payment.status == "completed"
 
 
-def test_invitation_designer_saves_and_renders_wedding_date(app, client):
+def test_invitation_designer_saves_and_renders_wedding_time(app, client):
     create_owner_wedding(client)
     with app.app_context():
         wedding = db.session.scalar(select(Wedding))
@@ -148,21 +148,24 @@ def test_invitation_designer_saves_and_renders_wedding_date(app, client):
         db.session.commit()
 
     page = client.get("/advanced/invitation-card")
-    assert b'name="wedding_date"' in page.data
+    assert b'name="event_time"' in page.data
+    assert b'name="wedding_date"' not in page.data
 
     saved = client.post("/advanced/invitation-card/design", data={
         "template_key": "floral_elegant",
         "font_style": "elegant",
-        "wedding_date": "2026-10-03",
+        "event_time": "14:30",
         "primary_color": "#7d1020",
         "accent_color": "#b88a3b",
         "show_profile_image": "yes",
         "message": "Please celebrate with us.",
     }, follow_redirects=True)
     assert saved.status_code == 200
-    assert b"Saturday, 03 October 2026" in saved.data
+    assert b"14:30" in saved.data
     with app.app_context():
-        assert db.session.scalar(select(Wedding)).wedding_date.isoformat() == "2026-10-03"
+        design = db.session.scalar(select(InvitationCardDesign))
+        assert design.event_time == "14:30"
+        assert db.session.scalar(select(Wedding)).wedding_date is None
 
 
 def test_programme_mobile_preview_keeps_elegant_font_hooks(app, client):
