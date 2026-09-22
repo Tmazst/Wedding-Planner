@@ -1,33 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Invitation Card · UMSHADO{% endblock %}
-{% block content %}
-<section class="page-heading">
-  <p class="eyebrow">Advanced · Invitation Card</p>
-  <h1>Invitation Card</h1>
-  <p>Invitation cards will share the same lightweight template, font and colour system as the wedding programme.</p>
-</section>
-
-<section class="card">
-  <h2>Default couple image</h2>
-  {% if wedding.profile_image %}
-    <img src="{{ url_for('main.wedding_photo') }}" alt="{{ wedding.title }} couple profile" style="width:180px;height:180px;object-fit:cover;border-radius:50%;">
-    <p>The existing wedding profile image is automatically selected for the invitation card.</p>
-  {% else %}
-    <p>No couple profile image is uploaded yet. The invitation can still render without a photo.</p>
-  {% endif %}
-</section>
-
-<section class="card">
-  <h2>Design defaults</h2>
-  {% if design %}
-  <dl>
-    <dt>Template</dt><dd>{{ design.template_key.replace('_', ' ')|title }}</dd>
-    <dt>Font style</dt><dd>{{ design.font_style|title }}</dd>
-    <dt>Primary colour</dt><dd>{{ design.primary_color }}</dd>
-    <dt>Accent colour</dt><dd>{{ design.accent_color }}</dd>
-    <dt>Profile photo</dt><dd>{{ 'Shown' if design.show_profile_image else 'Hidden' }}</dd>
-  </dl>
-  {% endif %}
-  <p><strong>Next build step:</strong> invitation wording, floral templates, font selection, theme colours, share links and PDF export.</p>
-</section>
+{% block page_styles %}
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/invitation-card.css') }}">
 {% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div>
+    <p class="eyebrow">Advanced · Invitation Card</p>
+    <h1>Invitation Card Creator</h1>
+    <p>Use the wedding details already in Umshado, choose a design, then share the invitation with guests.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('advanced.home') }}">Back to Advanced</a>
+</section>
+
+<div class="invitation-builder">
+  <section class="invitation-controls">
+    {% if is_owner %}
+    <form class="card compact invitation-settings" method="post" action="{{ url_for('advanced.invitation_card_design') }}" data-invitation-settings>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <h2>Design</h2>
+      <label>Template<select name="template_key">{% for value, label in template_options.items() %}<option value="{{ value }}" {% if design.template_key == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Font style<select name="font_style">{% for value, label in font_options.items() %}<option value="{{ value }}" {% if design.font_style == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <div class="invitation-colours">
+        <label>Wedding colour<input type="color" name="primary_color" value="{{ design.primary_color }}"></label>
+        <label>Accent<input type="color" name="accent_color" value="{{ design.accent_color }}"></label>
+      </div>
+      <label class="invitation-check"><input type="checkbox" name="show_profile_image" value="yes" {% if design.show_profile_image %}checked{% endif %}> Use couple profile image</label>
+      <label>Invitation wording<textarea name="message" rows="5" maxlength="800" placeholder="Request the pleasure of your company as they celebrate their wedding day.">{{ design.message or '' }}</textarea></label>
+      <button class="button primary" type="submit">Save invitation</button>
+    </form>
+
+    <section class="card compact invitation-sharing">
+      <h2>Guest sharing</h2>
+      {% if design.is_published and design.share_token %}
+        <p>Your invitation has a public guest link. Saved changes appear on the same link.</p>
+        <input class="share-link-input" readonly value="{{ url_for('advanced.shared_invitation_card', token=design.share_token, _external=True) }}" onclick="this.select()">
+        <div class="button-row left-buttons">
+          <a class="button secondary" target="_blank" rel="noopener" href="{{ url_for('advanced.shared_invitation_card', token=design.share_token) }}">Open guest view</a>
+          <a class="button primary" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('You are invited to our wedding: ' ~ url_for('advanced.shared_invitation_card', token=design.share_token, _external=True))|urlencode }}">Share on WhatsApp</a>
+        </div>
+        <form method="post" action="{{ url_for('advanced.invitation_card_publish') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="publish" value="no"><button class="text-link programme-unpublish" type="submit">Disable public link</button></form>
+      {% else %}
+        <p>Publish when you are ready to share the invitation with guests.</p>
+        <form method="post" action="{{ url_for('advanced.invitation_card_publish') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="publish" value="yes"><button class="button primary" type="submit">Create guest link</button></form>
+      {% endif %}
+    </section>
+    {% endif %}
+  </section>
+
+  <aside class="invitation-preview-column">
+    <div class="invitation-preview-label"><span>Live preview</span><small>Wedding details and profile photo are used automatically</small></div>
+    {% include "advanced/_invitation_card.html" %}
+  </aside>
+</div>
+
+<button class="invitation-mobile-preview-button" type="button" data-invitation-preview-open aria-controls="invitation-preview-modal" aria-expanded="false"><i class="fa-solid fa-eye" aria-hidden="true"></i> Preview invitation</button>
+<div class="invitation-preview-modal" id="invitation-preview-modal" data-invitation-preview-modal aria-hidden="true">
+  <button class="invitation-preview-close" type="button" data-invitation-preview-close aria-label="Close invitation preview"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+  <div class="invitation-preview-modal-panel" role="dialog" aria-modal="true" aria-label="Invitation card preview">
+    {% include "advanced/_invitation_card.html" %}
+  </div>
+</div>
+{% endblock %}
+{% block page_scripts %}<script src="{{ url_for('static', filename='js/invitation-card.js') }}" defer></script>{% endblock %}

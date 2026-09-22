@@ -1,0 +1,18 @@
+<article class="invitation-design template-{{ design.template_key }} font-{{ design.font_style }}" data-invitation-card style="--invitation-primary: {{ design.primary_color }}; --invitation-accent: {{ design.accent_color }};">
+  <div class="invitation-border"></div>
+  <div class="invitation-floral invitation-floral-top" aria-hidden="true"></div>
+  <div class="invitation-floral invitation-floral-bottom" aria-hidden="true"></div>
+  <div class="invitation-content">
+    <p class="invitation-kicker">You are invited to celebrate</p>
+    {% if design.show_profile_image and wedding.profile_image %}
+      <img class="invitation-photo" src="{{ photo_url if photo_url is defined else url_for('main.wedding_photo') }}" alt="{{ wedding.title }}">
+    {% endif %}
+    <h2 class="invitation-names">{{ wedding.partner_one }} <span>&amp;</span> {{ wedding.partner_two }}</h2>
+    <p class="invitation-subtitle">Together with their families</p>
+    <p class="invitation-message" data-invitation-message>{{ design.message or 'Request the pleasure of your company as they celebrate their wedding day.' }}</p>
+    <div class="invitation-divider"><span>♡</span></div>
+    {% if wedding.wedding_date %}<p class="invitation-date">{{ wedding.wedding_date.strftime('%A, %d %B %Y') }}</p>{% endif %}
+    {% if wedding.location %}<p class="invitation-location">{{ wedding.location }}</p>{% endif %}
+    <p class="invitation-footer">We would be honoured to celebrate with you.</p>
+  </div>
+</article>
