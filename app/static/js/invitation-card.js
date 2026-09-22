@@ -2,15 +2,6 @@
   const form = document.querySelector('[data-invitation-settings]');
   const cards = [...document.querySelectorAll('[data-invitation-card]')];
 
-  const formatDate = (value) => {
-    if (!value) return '';
-    const [year, month, day] = value.split('-').map(Number);
-    if (!year || !month || !day) return '';
-    return new Intl.DateTimeFormat('en-GB', {
-      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-    }).format(new Date(year, month - 1, day));
-  };
-
   const ensureSelectedFont = async () => {
     if (!form || !document.fonts) return;
     const font = form.elements.font_style?.value || 'elegant';
@@ -32,7 +23,7 @@
     const accent = form.elements.accent_color?.value || '#b88a3b';
     const message = form.elements.message?.value.trim() || 'Request the pleasure of your company as they celebrate their wedding day.';
     const showPhoto = Boolean(form.elements.show_profile_image?.checked);
-    const weddingDate = formatDate(form.elements.wedding_date?.value || '');
+    const eventTime = form.elements.event_time?.value || '';
 
     cards.forEach((card) => {
       [...card.classList].forEach((name) => {
@@ -44,10 +35,10 @@
       card.style.setProperty('--invitation-accent', accent);
       const messageNode = card.querySelector('[data-invitation-message]');
       if (messageNode) messageNode.textContent = message;
-      const dateNode = card.querySelector('[data-invitation-date]');
-      if (dateNode) {
-        dateNode.textContent = weddingDate;
-        dateNode.hidden = !weddingDate;
+      const timeNode = card.querySelector('[data-invitation-time]');
+      if (timeNode) {
+        timeNode.textContent = eventTime;
+        timeNode.hidden = !eventTime;
       }
       const photo = card.querySelector('.invitation-photo');
       if (photo) photo.hidden = !showPhoto;
