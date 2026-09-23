@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Vendors · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div>
+    <p class="eyebrow">Shared vendor directory</p>
+    <h1>Wedding vendors</h1>
+    <p>Browse suppliers shared with the Event Organiser platform. You can still add quotations manually from the Budget page.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('main.budget') }}">Back to budget</a>
+</section>
+
+<form class="card compact" method="get" action="{{ url_for('shared_vendors.directory') }}" style="margin-bottom:1rem;display:flex;gap:.7rem;align-items:end;flex-wrap:wrap">
+  <label style="flex:1;min-width:220px">Search vendors or products
+    <input name="q" value="{{ query }}" placeholder="Tent, catering, Manzini…">
+  </label>
+  <button class="button primary" type="submit">Search</button>
+</form>
+
+{% if service_error %}
+  <div class="flash error">{{ service_error }}</div>
+{% endif %}
+
+<section class="team-list">
+  {% for vendor in vendors %}
+    <article class="card invite-card">
+      <div>
+        <span class="status">{{ vendor.location }}</span>
+        <h2>{{ vendor.store_name }}</h2>
+        <p>{{ vendor.offering_summary }}</p>
+        {% if vendor.contact_phone %}<small>{{ vendor.contact_phone }}</small>{% endif %}
+      </div>
+      <a class="button secondary" href="{{ url_for('shared_vendors.detail', store_id=vendor.id) }}">View store</a>
+    </article>
+  {% else %}
+    {% if not service_error %}<div class="card empty">No vendors matched your search yet.</div>{% endif %}
+  {% endfor %}
+</section>
+{% endblock %}
