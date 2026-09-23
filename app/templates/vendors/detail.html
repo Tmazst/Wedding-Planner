@@ -20,8 +20,19 @@
       </div>
       <div class="quote-price">
         {% if product.publish_price and product.price %}<strong>E{{ product.price|float|moneyfmt(2) }}</strong>{% else %}<strong>Price on request</strong>{% endif %}
-        {% if quotation_integration_enabled %}
-          <span class="muted">Add-to-quotation integration is enabled; selection flow comes in the next step.</span>
+        {% if quotation_integration_enabled and categories %}
+          <form method="post" action="{{ url_for('shared_vendors.add_product_to_quotation', store_id=vendor.id, product_id=product.id) }}" style="display:grid;gap:.45rem;min-width:210px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="muted">Add to budget item
+              <select name="category_id" required>
+                <option value="">Choose budget item</option>
+                {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+              </select>
+            </label>
+            <button class="button primary" type="submit">Add to quotations</button>
+          </form>
+        {% elif quotation_integration_enabled %}
+          <span class="muted">Create a budget item first, then return here to add this vendor.</span>
         {% else %}
           <span class="muted">Use the Budget page to add this quotation manually.</span>
         {% endif %}
