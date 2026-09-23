@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Vendors unavailable · UMSHADO{% endblock %}
+{% block content %}
+<section class="card invite-landing">
+  <p class="eyebrow">Shared vendor directory</p>
+  <h1>Vendor service temporarily unavailable</h1>
+  <p>The shared vendor directory could not be reached. Your wedding project and manual quotation entry are not affected.</p>
+  <div class="button-row">
+    <a class="button primary" href="{{ url_for('main.budget') }}">Open budget</a>
+    <a class="button secondary" href="{{ url_for('shared_vendors.directory') }}">Try vendors again</a>
+  </div>
+</section>
+{% endblock %}
