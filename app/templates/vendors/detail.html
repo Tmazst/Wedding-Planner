@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ vendor.store_name }} · Vendors · UMSHADO{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('shared_vendors.directory') }}">← Back to vendors</a>
+<section class="page-heading">
+  <p class="eyebrow">Shared vendor</p>
+  <h1>{{ vendor.store_name }}</h1>
+  <p>{{ vendor.offering_summary }}</p>
+  <p class="muted">{{ vendor.location }}{% if vendor.contact_phone %} · {{ vendor.contact_phone }}{% endif %}{% if vendor.contact_email %} · {{ vendor.contact_email }}{% endif %}</p>
+</section>
+
+<section class="quote-list">
+  {% for product in vendor.products %}
+    <article class="card quote-card">
+      <div>
+        <span class="status">Product / service</span>
+        <h2>{{ product.name }}</h2>
+        {% if product.description %}<p>{{ product.description }}</p>{% endif %}
+        {% if product.price_unit %}<small>Unit: {{ product.price_unit }}</small>{% endif %}
+      </div>
+      <div class="quote-price">
+        {% if product.publish_price and product.price %}<strong>E{{ product.price|float|moneyfmt(2) }}</strong>{% else %}<strong>Price on request</strong>{% endif %}
+        {% if quotation_integration_enabled %}
+          <span class="muted">Add-to-quotation integration is enabled; selection flow comes in the next step.</span>
+        {% else %}
+          <span class="muted">Use the Budget page to add this quotation manually.</span>
+        {% endif %}
+      </div>
+    </article>
+  {% else %}
+    <div class="card empty">This vendor has not published products or services yet.</div>
+  {% endfor %}
+</section>
+{% endblock %}
