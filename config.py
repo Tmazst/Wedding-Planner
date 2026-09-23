@@ -42,6 +42,17 @@ class Config:
     ADVANCED_PROGRAMME_ENABLED = env_bool("ADVANCED_PROGRAMME_ENABLED", True)
     ADVANCED_INVITATION_CARD_ENABLED = env_bool("ADVANCED_INVITATION_CARD_ENABLED", True)
 
+    # Shared vendor directory. Manual quotation entry remains independent of
+    # these switches and must continue working even when integration is off.
+    VENDOR_FEATURE_ENABLED = env_bool("VENDOR_FEATURE_ENABLED", False)
+    VENDOR_DIRECTORY_ENABLED = env_bool("VENDOR_DIRECTORY_ENABLED", False)
+    VENDOR_QUOTATION_INTEGRATION_ENABLED = env_bool(
+        "VENDOR_QUOTATION_INTEGRATION_ENABLED", False
+    )
+    VENDOR_API_BASE_URL = os.getenv("VENDOR_API_BASE_URL", "").rstrip("/")
+    VENDOR_API_KEY = os.getenv("VENDOR_API_KEY") or None
+    VENDOR_API_TIMEOUT_SECONDS = float(os.getenv("VENDOR_API_TIMEOUT_SECONDS", "5"))
+
     PAYMENT_CURRENCY = os.getenv("MOJAPOS_CURRENCY", "SZL")
     MOJAPOS_SUPPORTED_COUNTRIES = tuple(
         country.strip().upper()
