@@ -7,7 +7,10 @@
     <h1>Wedding vendors</h1>
     <p>Browse suppliers shared with the Event Organiser platform. You can still add quotations manually from the Budget page.</p>
   </div>
-  <a class="button secondary" href="{{ url_for('main.budget') }}">Back to budget</a>
+  <div class="button-row">
+    {% if account_integration_enabled %}<a class="button secondary" href="{{ url_for('shared_vendors.vendor_account') }}">Vendor account</a>{% endif %}
+    <a class="button secondary" href="{{ url_for('main.budget') }}">Back to budget</a>
+  </div>
 </section>
 
 <form class="card compact" method="get" action="{{ url_for('shared_vendors.directory') }}" style="margin-bottom:1rem;display:flex;gap:.7rem;align-items:end;flex-wrap:wrap">
