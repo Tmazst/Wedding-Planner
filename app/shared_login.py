@@ -1,12 +1,14 @@
+import hashlib
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, flash, redirect, request, url_for
 from flask_login import current_user, login_required, login_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from .extensions import db
-from .models import User
+from .models import SharedLoginUse, User
 
 
 bp = Blueprint("shared_login", __name__, url_prefix="/shared-login")
@@ -41,6 +43,19 @@ def _matching_user(payload):
     if email_user and phone_user and email_user.id != phone_user.id:
         return None, True
     return email_user or phone_user, False
+
+
+def _consume_token(token):
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    if db.session.scalar(select(SharedLoginUse).where(SharedLoginUse.token_hash == token_hash)):
+        return False
+    db.session.add(SharedLoginUse(token_hash=token_hash))
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return False
+    return True
 
 
 @bp.get("/to-umcimby")
@@ -85,6 +100,9 @@ def from_umcimby():
     if user is None:
         flash("No UMSHADO account was found for this Umcimby account. Please register first.", "info")
         return redirect(url_for("main.register"))
+    if not _consume_token(token):
+        flash("That shared login link has already been used. Please start again from Umcimby.", "error")
+        return redirect(url_for("main.login"))
 
     login_user(user)
     flash("Signed in through Umcimby.", "success")
