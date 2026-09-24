@@ -18,13 +18,22 @@
       <span class="status">Vendor account found</span>
       <h2>{{ account.name }}</h2>
       <p>Your vendor account already exists in Umcimby{% if account.has_store %} and your store is already set up{% endif %}.</p>
-      <p class="muted">To manage your store, products and vendor profile, please login through Event Organiser (Umcimby).</p>
-      {% if login_url %}<a class="button primary" href="{{ login_url }}">Login through Umcimby</a>{% endif %}
+      {% if config.SHARED_LOGIN_HANDOFF_ENABLED %}
+        <p class="muted">Continue to Umcimby without entering your password again. The handoff link is signed and expires quickly.</p>
+        <a class="button primary" href="{{ url_for('shared_login.to_umcimby') }}">Continue to Umcimby</a>
+      {% else %}
+        <p class="muted">To manage your store, products and vendor profile, please login through Event Organiser (Umcimby).</p>
+        {% if login_url %}<a class="button primary" href="{{ login_url }}">Login through Umcimby</a>{% endif %}
+      {% endif %}
     {% else %}
       <span class="status">Umcimby account found</span>
       <h2>{{ account.name }}</h2>
       <p>An Umcimby account already exists with these details, but it is not currently a vendor account.</p>
-      {% if login_url %}<a class="button primary" href="{{ login_url }}">Open Umcimby</a>{% endif %}
+      {% if config.SHARED_LOGIN_HANDOFF_ENABLED %}
+        <a class="button primary" href="{{ url_for('shared_login.to_umcimby') }}">Open Umcimby</a>
+      {% elif login_url %}
+        <a class="button primary" href="{{ login_url }}">Open Umcimby</a>
+      {% endif %}
     {% endif %}
   </section>
 {% else %}
