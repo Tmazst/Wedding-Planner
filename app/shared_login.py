@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from flask import Blueprint, current_app, flash, redirect, request, url_for
 from flask_login import current_user, login_required, login_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from .extensions import db
 from .models import User
@@ -31,6 +31,16 @@ def _identity_payload(user):
         "source": "umshado",
         "target": "umcimby",
     }
+
+
+def _matching_user(payload):
+    email = (payload.get("email") or "").strip().lower()
+    phone = (payload.get("phone_number") or "").strip()
+    email_user = db.session.scalar(select(User).where(User.email == email)) if email else None
+    phone_user = db.session.scalar(select(User).where(User.phone_number == phone)) if phone else None
+    if email_user and phone_user and email_user.id != phone_user.id:
+        return None, True
+    return email_user or phone_user, False
 
 
 @bp.get("/to-umcimby")
@@ -68,14 +78,10 @@ def from_umcimby():
         flash("That shared login link is invalid.", "error")
         return redirect(url_for("main.login"))
 
-    email = (payload.get("email") or "").strip().lower()
-    phone = (payload.get("phone_number") or "").strip()
-    clauses = []
-    if email:
-        clauses.append(User.email == email)
-    if phone:
-        clauses.append(User.phone_number == phone)
-    user = db.session.scalar(select(User).where(or_(*clauses))) if clauses else None
+    user, identity_conflict = _matching_user(payload)
+    if identity_conflict:
+        flash("This shared account has conflicting email and phone records. Please sign in normally and contact support.", "error")
+        return redirect(url_for("main.login"))
     if user is None:
         flash("No UMSHADO account was found for this Umcimby account. Please register first.", "info")
         return redirect(url_for("main.register"))
