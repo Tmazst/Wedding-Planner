@@ -31,6 +31,14 @@ class TestConfig:
     SHARED_LOGIN_SECRET = "shared-login-test-secret"
     SHARED_LOGIN_MAX_AGE_SECONDS = 90
     UMCIMBY_SSO_RECEIVE_URL = "https://events.example/shared-login/from-umshado"
+    VENDOR_FEATURE_ENABLED = True
+    VENDOR_ACCOUNT_INTEGRATION_ENABLED = True
+    VENDOR_REMOTE_SIGNUP_ENABLED = True
+    VENDOR_API_BASE_URL = "https://events.example"
+    VENDOR_API_KEY = "test-vendor-key"
+    VENDOR_API_TIMEOUT_SECONDS = 5
+    VENDOR_PORTAL_LOGIN_URL = "https://events.example/login"
+    VENDOR_PORTAL_REGISTER_URL = "https://events.example/register"
 
 
 @pytest.fixture()
@@ -122,3 +130,70 @@ def test_expired_handoff_is_rejected(app, client):
     app.config["SHARED_LOGIN_MAX_AGE_SECONDS"] = -1
     response = client.get(f"/shared-login/from-umcimby?token={token}", follow_redirects=True)
     assert b"shared login link expired" in response.data
+
+
+def test_register_page_offers_vendor_account(app, client):
+    page = client.get("/register")
+    assert page.status_code == 200
+    assert b"Create wedding account" in page.data
+    assert b"I am a vendor" in page.data
+    assert b"/vendors/register-account" in page.data
+
+
+def test_vendor_signup_creates_remote_and_local_account(app, client, monkeypatch):
+    class FakeResponse:
+        def __init__(self, payload, status_code=200):
+            self._payload = payload
+            self.status_code = status_code
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise AssertionError("unexpected HTTP error")
+        def json(self):
+            return self._payload
+
+    calls = []
+    def fake_post(url, json, headers, timeout):
+        calls.append((url, json))
+        if url.endswith("/api/vendors/accounts/lookup"):
+            return FakeResponse({"exists": False})
+        if url.endswith("/api/vendors/accounts/register"):
+            return FakeResponse({"created": True, "is_vendor": True})
+        raise AssertionError(url)
+
+    monkeypatch.setattr("app.shared_vendors.requests.post", fake_post)
+    response = client.post("/vendors/register-account", data={
+        "name": "New Vendor",
+        "email": "newvendor@example.com",
+        "phone_number": "76123456",
+        "phone_country": "SZ",
+        "password": "secret1",
+        "accept_terms": "yes",
+    })
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/shared-login/to-umcimby")
+    assert len(calls) == 2
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.email == "newvendor@example.com"))
+        assert user is not None
+        assert user.phone_number == "76123456"
+
+
+def test_existing_umcimby_vendor_is_sent_to_umcimby_login(app, client, monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        def json(self):
+            return {"exists": True, "is_vendor": True, "name": "Existing Vendor"}
+
+    monkeypatch.setattr("app.shared_vendors.requests.post", lambda *args, **kwargs: FakeResponse())
+    response = client.post("/vendors/register-account", data={
+        "name": "Existing Vendor",
+        "email": "vendor@example.com",
+        "phone_number": "76123456",
+        "phone_country": "SZ",
+        "password": "secret1",
+        "accept_terms": "yes",
+    })
+    assert response.status_code == 302
+    assert response.headers["Location"] == "https://events.example/login"
+    with app.app_context():
+        assert db.session.scalar(db.select(User).where(User.email == "vendor@example.com")) is None
