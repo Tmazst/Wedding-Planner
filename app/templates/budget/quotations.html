@@ -6,10 +6,10 @@
   <form class="card form-card compact" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>Add quotation</h2>
-    <label>Vendor or supplier<input name="vendor_name" required></label>
+    <label>Vendor or supplier<input name="vendor_name" value="{{ request.args.get('vendor_name', '') }}" required></label>
     <label>Quoted amount (E)<input type="number" name="amount" min="0.01" step="0.01" required></label>
-    <label>Phone / contact<input name="contact"></label>
-    <label>Notes<textarea name="notes" rows="3" placeholder="What is included?"></textarea></label>
+    <label>Phone / contact<input name="contact" value="{{ request.args.get('contact', '') }}"></label>
+    <label>Notes<textarea name="notes" rows="3" placeholder="What is included?">{{ request.args.get('notes', '') }}</textarea></label>
     <button class="button primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save quotation</button>
   </form>
   <div class="quote-list">

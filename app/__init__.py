@@ -99,6 +99,10 @@ def create_app(config_class=Config):
             "csrf_token": csrf_token,
             "current_year": datetime.now(timezone.utc).year,
             "app_css_version": app.config["APP_CSS_VERSION"],
+            "vendor_directory_enabled": (
+                app.config.get("VENDOR_FEATURE_ENABLED", False)
+                and app.config.get("VENDOR_DIRECTORY_ENABLED", False)
+            ),
         }
 
     @app.before_request
@@ -163,6 +167,9 @@ def create_app(config_class=Config):
 
     from .advanced import bp as advanced_bp
     app.register_blueprint(advanced_bp)
+
+    from .shared_vendors import bp as shared_vendors_bp
+    app.register_blueprint(shared_vendors_bp)
 
     from .payment_gateway import build_gateway
     build_gateway().init_app(app)

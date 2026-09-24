@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Vendor Account · UMSHADO{% endblock %}
+{% block content %}
+<section class="page-heading heading-row">
+  <div>
+    <p class="eyebrow">Shared vendor account</p>
+    <h1>Vendor access</h1>
+    <p>Vendor accounts are managed by Event Organiser (Umcimby), while UMSHADO can recognise and create them through the shared vendor service.</p>
+  </div>
+  <a class="button secondary" href="{{ url_for('shared_vendors.directory') }}">Back to vendors</a>
+</section>
+
+{% if service_error %}
+  <div class="flash error">{{ service_error }}</div>
+{% elif account and account.exists %}
+  <section class="card form-card compact">
+    {% if account.is_vendor %}
+      <span class="status">Vendor account found</span>
+      <h2>{{ account.name }}</h2>
+      <p>Your vendor account already exists in Umcimby{% if account.has_store %} and your store is already set up{% endif %}.</p>
+      <p class="muted">To manage your store, products and vendor profile, please login through Event Organiser (Umcimby).</p>
+      {% if login_url %}<a class="button primary" href="{{ login_url }}">Login through Umcimby</a>{% endif %}
+    {% else %}
+      <span class="status">Umcimby account found</span>
+      <h2>{{ account.name }}</h2>
+      <p>An Umcimby account already exists with these details, but it is not currently a vendor account.</p>
+      {% if login_url %}<a class="button primary" href="{{ login_url }}">Open Umcimby</a>{% endif %}
+    {% endif %}
+  </section>
+{% else %}
+  <section class="card form-card compact">
+    <span class="status">No vendor account found</span>
+    <h2>Become a vendor</h2>
+    <p>We will use your existing UMSHADO name, email and phone number to create your vendor account in Umcimby.</p>
+    {% if remote_signup_enabled %}
+      <form method="post" style="display:grid;gap:.8rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Vendor password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
+        <label>Confirm password<input type="password" name="confirm_password" minlength="6" required autocomplete="new-password"></label>
+        <button class="button primary" type="submit">Create vendor account</button>
+      </form>
+      <p class="muted">After creating the account, you will finish your vendor store setup in Umcimby.</p>
+    {% elif register_url %}
+      <a class="button primary" href="{{ register_url }}">Register through Umcimby</a>
+    {% else %}
+      <p class="muted">Vendor sign-up from UMSHADO is currently disabled.</p>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}
