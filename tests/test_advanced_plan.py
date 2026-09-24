@@ -122,7 +122,7 @@ def test_standard_owner_pays_only_balance_to_reach_advanced(app, client):
         assert db.session.scalar(select(Wedding)).plan_tier == "standard"
 
     pricing = client.get("/pricing")
-    assert b"Upgrade balance" in pricing.data
+    assert b"remaining balance is due" in pricing.data
     assert b"E190" in pricing.data
 
     client.post(
