@@ -1,12 +1,15 @@
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 import requests
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
+from sqlalchemy import select
 
 from .activity import add_activity, publish_activity
 from .extensions import db
-from .models import BudgetCategory, Quotation
+from .models import BudgetCategory, Quotation, User
+from .phone_numbers import normalize_phone
 
 
 bp = Blueprint("shared_vendors", __name__, url_prefix="/vendors")
@@ -69,12 +72,20 @@ def _api_post(path, payload):
     return response.json()
 
 
-def _vendor_account_lookup():
+def _vendor_account_lookup_identity(email, phone_number, phone_country):
     return _api_post("/api/vendors/accounts/lookup", {
-        "email": current_user.email,
-        "phone_number": current_user.phone_number,
-        "phone_country": current_user.phone_country,
+        "email": email,
+        "phone_number": phone_number,
+        "phone_country": phone_country,
     })
+
+
+def _vendor_account_lookup():
+    return _vendor_account_lookup_identity(
+        current_user.email,
+        current_user.phone_number,
+        current_user.phone_country,
+    )
 
 
 def _product_from_vendor(vendor, product_id):
@@ -91,6 +102,99 @@ def _product_notes(product):
     if product.get("price_unit"):
         parts.append(f"Unit: {product['price_unit']}")
     return " · ".join(parts)
+
+
+@bp.post("/register-account")
+def register_vendor_account():
+    """Create an UMSHADO user and matching Umcimby vendor account from one form."""
+    if current_user.is_authenticated:
+        return redirect(url_for("shared_vendors.vendor_account"))
+    if not _account_enabled():
+        return ("Not found", 404)
+
+    register_url = current_app.config.get("VENDOR_PORTAL_REGISTER_URL") or None
+    login_url = current_app.config.get("VENDOR_PORTAL_LOGIN_URL") or None
+    if request.form.get("invite_token"):
+        flash("Vendor registration is not available while accepting a wedding invitation.", "info")
+        return redirect(url_for("main.register", invite=request.form.get("invite_token")))
+    if not current_app.config.get("VENDOR_REMOTE_SIGNUP_ENABLED", False):
+        flash("Vendor sign-up from UMSHADO is not enabled yet. Please register through Umcimby.", "info")
+        return redirect(register_url or url_for("main.register"))
+
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    phone_country = request.form.get("phone_country", "SZ")
+    try:
+        phone_number, phone_country = normalize_phone(
+            request.form.get("phone_number"), phone_country
+        )
+        phone_error = None
+    except ValueError as error:
+        phone_number, phone_error = None, str(error)
+    password = request.form.get("password", "")
+    accepted_terms = request.form.get("accept_terms") == "yes"
+
+    if not accepted_terms:
+        flash("You must agree to the Terms of Use and acknowledge the Privacy Notice.", "error")
+        return redirect(url_for("main.register"))
+    if phone_error:
+        flash(phone_error, "error")
+        return redirect(url_for("main.register"))
+    if not name or not email or len(password) < 6:
+        flash("Enter your name, email and a password of at least 6 characters.", "error")
+        return redirect(url_for("main.register"))
+    if db.session.scalar(select(User).where(User.email == email)):
+        flash("An UMSHADO account with that email already exists. Please log in first.", "error")
+        return redirect(url_for("main.login"))
+    if db.session.scalar(select(User).where(User.phone_number == phone_number)):
+        flash("An UMSHADO account with that phone number already exists. Please log in first.", "error")
+        return redirect(url_for("main.login"))
+
+    try:
+        remote_account = _vendor_account_lookup_identity(email, phone_number, phone_country)
+    except (requests.RequestException, ValueError, RuntimeError):
+        flash("Umcimby vendor accounts are temporarily unavailable. Please try again later.", "error")
+        return redirect(url_for("main.register"))
+
+    if remote_account.get("exists"):
+        if remote_account.get("is_vendor"):
+            flash("Your vendor account already exists. Please login through Event Organiser (Umcimby) instead.", "info")
+        else:
+            flash("An Umcimby account already exists with these details. Please login through Umcimby for account help.", "info")
+        return redirect(login_url or url_for("main.login"))
+
+    try:
+        _api_post("/api/vendors/accounts/register", {
+            "name": name,
+            "email": email,
+            "phone_number": phone_number,
+            "phone_country": phone_country,
+            "password": password,
+        })
+    except requests.HTTPError as error:
+        flash(str(error), "error")
+        return redirect(url_for("main.register"))
+    except (requests.RequestException, ValueError, RuntimeError):
+        flash("Umcimby vendor sign-up is temporarily unavailable. Please try again later.", "error")
+        return redirect(url_for("main.register"))
+
+    user = User(
+        name=name,
+        email=email,
+        phone_number=phone_number,
+        phone_country=phone_country,
+        terms_accepted_at=datetime.now(timezone.utc),
+        terms_version=current_app.config["TERMS_VERSION"],
+        privacy_version=current_app.config["PRIVACY_VERSION"],
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    login_user(user)
+    flash("Vendor account created. Continue to Umcimby to set up your store.", "success")
+    if current_app.config.get("SHARED_LOGIN_HANDOFF_ENABLED", False):
+        return redirect(url_for("shared_login.to_umcimby"))
+    return redirect(login_url or url_for("shared_vendors.vendor_account"))
 
 
 @bp.get("")
