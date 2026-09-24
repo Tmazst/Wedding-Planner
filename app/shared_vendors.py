@@ -9,7 +9,7 @@ from sqlalchemy import select
 from .activity import add_activity, publish_activity
 from .extensions import db
 from .models import BudgetCategory, Quotation, User
-from .phone_numbers import normalize_phone
+from .phone_numbers import country_options, normalize_phone
 
 
 bp = Blueprint("shared_vendors", __name__, url_prefix="/vendors")
@@ -88,6 +88,22 @@ def _vendor_account_lookup():
     )
 
 
+def _registration_response(message, category="error", status=400, *, vendor_login_url=None):
+    """Render the registration page in-place so a failed signup is never mistaken for success."""
+    flash(message, category)
+    return render_template(
+        "auth/register.html",
+        invite_token=request.form.get("invite_token", ""),
+        countries=country_options(),
+        selected_country=request.form.get("phone_country", "SZ"),
+        phone_value=request.form.get("phone_number", ""),
+        name_value=request.form.get("name", ""),
+        email_value=request.form.get("email", ""),
+        accepted_terms=request.form.get("accept_terms") == "yes",
+        vendor_login_url=vendor_login_url,
+    ), status
+
+
 def _product_from_vendor(vendor, product_id):
     return next(
         (product for product in vendor.get("products", []) if int(product.get("id", -1)) == product_id),
@@ -115,11 +131,18 @@ def register_vendor_account():
     register_url = current_app.config.get("VENDOR_PORTAL_REGISTER_URL") or None
     login_url = current_app.config.get("VENDOR_PORTAL_LOGIN_URL") or None
     if request.form.get("invite_token"):
-        flash("Vendor registration is not available while accepting a wedding invitation.", "info")
-        return redirect(url_for("main.register", invite=request.form.get("invite_token")))
+        return _registration_response(
+            "Vendor registration is not available while accepting a wedding invitation.",
+            "info",
+            400,
+        )
     if not current_app.config.get("VENDOR_REMOTE_SIGNUP_ENABLED", False):
-        flash("Vendor sign-up from UMSHADO is not enabled yet. Please register through Umcimby.", "info")
-        return redirect(register_url or url_for("main.register"))
+        return _registration_response(
+            "Vendor sign-up from UMSHADO is not enabled yet. Please register through Umcimby.",
+            "info",
+            503,
+            vendor_login_url=register_url,
+        )
 
     name = request.form.get("name", "").strip()
     email = request.form.get("email", "").strip().lower()
@@ -135,33 +158,45 @@ def register_vendor_account():
     accepted_terms = request.form.get("accept_terms") == "yes"
 
     if not accepted_terms:
-        flash("You must agree to the Terms of Use and acknowledge the Privacy Notice.", "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(
+            "You must agree to the Terms of Use and acknowledge the Privacy Notice."
+        )
     if phone_error:
-        flash(phone_error, "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(phone_error)
     if not name or not email or len(password) < 6:
-        flash("Enter your name, email and a password of at least 6 characters.", "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(
+            "Enter your name, email and a password of at least 6 characters."
+        )
     if db.session.scalar(select(User).where(User.email == email)):
-        flash("An UMSHADO account with that email already exists. Please log in first.", "error")
-        return redirect(url_for("main.login"))
+        return _registration_response(
+            "An UMSHADO account with that email already exists. Please log in using your existing account."
+        )
     if db.session.scalar(select(User).where(User.phone_number == phone_number)):
-        flash("An UMSHADO account with that phone number already exists. Please log in first.", "error")
-        return redirect(url_for("main.login"))
+        return _registration_response(
+            "An UMSHADO account with that phone number already exists. Please log in using your existing account."
+        )
 
     try:
         remote_account = _vendor_account_lookup_identity(email, phone_number, phone_country)
+    except requests.HTTPError as error:
+        return _registration_response(f"Umcimby: {error}")
     except (requests.RequestException, ValueError, RuntimeError):
-        flash("Umcimby vendor accounts are temporarily unavailable. Please try again later.", "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(
+            "Could not reach Umcimby to verify the vendor account. Please check the connection and try again.",
+            status=503,
+        )
 
     if remote_account.get("exists"):
         if remote_account.get("is_vendor"):
-            flash("Your vendor account already exists. Please login through Event Organiser (Umcimby) instead.", "info")
+            message = "Your vendor account already exists in Umcimby. Please login through Event Organiser (Umcimby) instead."
         else:
-            flash("An Umcimby account already exists with these details. Please login through Umcimby for account help.", "info")
-        return redirect(login_url or url_for("main.login"))
+            message = "An Umcimby account already exists with these details. Please login through Umcimby for account help."
+        return _registration_response(
+            message,
+            "info",
+            409,
+            vendor_login_url=login_url,
+        )
 
     try:
         _api_post("/api/vendors/accounts/register", {
@@ -172,11 +207,12 @@ def register_vendor_account():
             "password": password,
         })
     except requests.HTTPError as error:
-        flash(str(error), "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(f"Umcimby: {error}")
     except (requests.RequestException, ValueError, RuntimeError):
-        flash("Umcimby vendor sign-up is temporarily unavailable. Please try again later.", "error")
-        return redirect(url_for("main.register"))
+        return _registration_response(
+            "Could not create the vendor account in Umcimby. Please check the connection and try again.",
+            status=503,
+        )
 
     user = User(
         name=name,
@@ -334,8 +370,10 @@ def vendor_account():
 
     try:
         account = _vendor_account_lookup()
+    except requests.HTTPError as error:
+        service_error = f"Umcimby: {error}"
     except (requests.RequestException, ValueError, RuntimeError):
-        service_error = "Umcimby vendor accounts are temporarily unavailable. Please try again later."
+        service_error = "Could not reach Umcimby vendor accounts. Please check the connection and try again."
 
     if request.method == "POST" and service_error is None:
         if not remote_signup:
@@ -369,9 +407,9 @@ def vendor_account():
                     "password": password,
                 })
             except requests.HTTPError as error:
-                flash(str(error), "error")
+                flash(f"Umcimby: {error}", "error")
             except (requests.RequestException, ValueError, RuntimeError):
-                flash("Umcimby vendor sign-up is temporarily unavailable.", "error")
+                flash("Could not create the vendor account in Umcimby. Please check the connection and try again.", "error")
             else:
                 flash("Vendor account created. Continue to Umcimby to set up your store.", "success")
                 return redirect(
