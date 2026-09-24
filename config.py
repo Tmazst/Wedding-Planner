@@ -59,6 +59,12 @@ class Config:
     VENDOR_PORTAL_LOGIN_URL = os.getenv("VENDOR_PORTAL_LOGIN_URL", "").strip()
     VENDOR_PORTAL_REGISTER_URL = os.getenv("VENDOR_PORTAL_REGISTER_URL", "").strip()
 
+    # Short-lived signed login handoff between UMSHADO and Umcimby.
+    SHARED_LOGIN_HANDOFF_ENABLED = env_bool("SHARED_LOGIN_HANDOFF_ENABLED", False)
+    SHARED_LOGIN_SECRET = os.getenv("SHARED_LOGIN_SECRET") or None
+    SHARED_LOGIN_MAX_AGE_SECONDS = int(os.getenv("SHARED_LOGIN_MAX_AGE_SECONDS", "90"))
+    UMCIMBY_SSO_RECEIVE_URL = os.getenv("UMCIMBY_SSO_RECEIVE_URL", "").strip()
+
     PAYMENT_CURRENCY = os.getenv("MOJAPOS_CURRENCY", "SZL")
     MOJAPOS_SUPPORTED_COUNTRIES = tuple(
         country.strip().upper()
