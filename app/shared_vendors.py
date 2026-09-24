@@ -224,6 +224,7 @@ def vendor_account():
     login_url = current_app.config.get("VENDOR_PORTAL_LOGIN_URL") or None
     register_url = current_app.config.get("VENDOR_PORTAL_REGISTER_URL") or None
     remote_signup = current_app.config.get("VENDOR_REMOTE_SIGNUP_ENABLED", False)
+    handoff_enabled = current_app.config.get("SHARED_LOGIN_HANDOFF_ENABLED", False)
     account = None
     service_error = None
 
@@ -241,7 +242,10 @@ def vendor_account():
                 flash("Your vendor account already exists. Please login through Event Organiser (Umcimby) instead.", "info")
             else:
                 flash("An Umcimby account already exists with these details. Please login through Umcimby for account help.", "info")
-            return redirect(login_url or url_for("shared_vendors.vendor_account"))
+            return redirect(
+                url_for("shared_login.to_umcimby")
+                if handoff_enabled else (login_url or url_for("shared_vendors.vendor_account"))
+            )
 
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
@@ -265,8 +269,11 @@ def vendor_account():
             except (requests.RequestException, ValueError, RuntimeError):
                 flash("Umcimby vendor sign-up is temporarily unavailable.", "error")
             else:
-                flash("Vendor account created. Please login through Umcimby to set up your store.", "success")
-                return redirect(login_url or url_for("shared_vendors.vendor_account"))
+                flash("Vendor account created. Continue to Umcimby to set up your store.", "success")
+                return redirect(
+                    url_for("shared_login.to_umcimby")
+                    if handoff_enabled else (login_url or url_for("shared_vendors.vendor_account"))
+                )
 
     return render_template(
         "vendors/account.html",
