@@ -8,18 +8,20 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="invite_token" value="{{ invite_token }}">
     <h2>Create account</h2>
-    <label>Your name<input name="name" required autocomplete="name"></label>
-    <label>Email<input type="email" name="email" required autocomplete="email"></label>
+    <label>Your name<input name="name" value="{{ name_value|default('') }}" required autocomplete="name"></label>
+    <label>Email<input type="email" name="email" value="{{ email_value|default('') }}" required autocomplete="email"></label>
     {{ phone_fields(countries, selected_country, phone_value) }}
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
-    <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
+    <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" {% if accepted_terms|default(false) %}checked{% endif %} required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
     <div class="account-type-actions">
       <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create wedding account</button>
       {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
         <button class="button secondary" type="submit" formaction="{{ url_for('shared_vendors.register_vendor_account') }}"><i class="fa-solid fa-store" aria-hidden="true"></i> I am a vendor</button>
       {% endif %}
     </div>
-    {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
+    {% if vendor_login_url %}
+      <p class="plan-notice"><strong>Vendor account already available?</strong> <a href="{{ vendor_login_url }}">Continue to Umcimby</a>.</p>
+    {% elif not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
       <p class="muted">Vendor accounts are managed through Event Organiser (Umcimby), but you can start the registration here.</p>
     {% endif %}
     <p class="form-foot">Already registered? <a href="{{ url_for('main.login', invite=invite_token) }}">Log in</a></p>
