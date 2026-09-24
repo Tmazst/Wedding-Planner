@@ -13,7 +13,15 @@
     {{ phone_fields(countries, selected_country, phone_value) }}
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
     <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
-    <button class="button primary" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create account</button>
+    <div class="account-type-actions">
+      <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create wedding account</button>
+      {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
+        <button class="button secondary" type="submit" formaction="{{ url_for('shared_vendors.register_vendor_account') }}"><i class="fa-solid fa-store" aria-hidden="true"></i> I am a vendor</button>
+      {% endif %}
+    </div>
+    {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
+      <p class="muted">Vendor accounts are managed through Event Organiser (Umcimby), but you can start the registration here.</p>
+    {% endif %}
     <p class="form-foot">Already registered? <a href="{{ url_for('main.login', invite=invite_token) }}">Log in</a></p>
   </form>
 </section>
