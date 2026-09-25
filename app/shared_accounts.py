@@ -1,9 +1,10 @@
 import hmac
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 import requests
-from flask import Blueprint, current_app, flash, jsonify, render_template, request, url_for
-from flask_login import current_user
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user, login_user
 from sqlalchemy import or_, select
 
 from .extensions import db
@@ -95,7 +96,7 @@ def lookup():
 @bp.post("/register")
 def register():
     if current_user.is_authenticated:
-        return ("Already signed in", 409)
+        return redirect(url_for("main.dashboard"))
 
     name = request.form.get("name", "").strip()
     email = request.form.get("email", "").strip().lower()
@@ -140,7 +141,7 @@ def register():
         email=email,
         phone_number=phone_number,
         phone_country=phone_country,
-        terms_accepted_at=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
+        terms_accepted_at=datetime.now(timezone.utc),
         terms_version=current_app.config["TERMS_VERSION"],
         privacy_version=current_app.config["PRIVACY_VERSION"],
     )
@@ -148,9 +149,8 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    from flask_login import login_user
     from .routes import invitation_redirect
     login_user(user)
     if request.form.get("invite_token"):
         return invitation_redirect()
-    return __import__("flask").redirect(url_for("main.setup_wedding"))
+    return redirect(url_for("main.setup_wedding"))
