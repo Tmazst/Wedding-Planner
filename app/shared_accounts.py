@@ -1,6 +1,6 @@
 import hmac
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 import requests
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
@@ -38,8 +38,10 @@ def _remote_origin():
 
 
 def _remote_lookup(email, phone_number):
-    if not _enabled() or not _api_key():
+    if not _enabled():
         return None
+    if not _api_key():
+        raise RuntimeError("Shared account API key is not configured.")
     response = requests.post(
         f"{_remote_origin()}/shared-accounts/api/lookup",
         json={"email": email, "phone_number": phone_number},
@@ -89,6 +91,7 @@ def lookup():
         "name": user.name,
         "email": user.email,
         "phone_number": user.phone_number,
+        "phone_country": user.phone_country,
         "account_type": "wedding",
     })
 
@@ -122,13 +125,18 @@ def register():
     if db.session.scalar(select(User).where(User.phone_number == phone_number)):
         return _register_page("An UMSHADO account with that phone number already exists. Please log in.", "error", 409)
 
-    if not request.form.get("invite_token"):
+    if not request.form.get("invite_token") and _enabled():
         try:
             remote = _remote_lookup(email, phone_number)
         except (requests.RequestException, RuntimeError, ValueError):
-            remote = None
+            return _register_page(
+                "We could not check your Umcimby account right now. Please try again before creating a new account.",
+                "error",
+                503,
+            )
         if remote and remote.get("exists"):
-            continue_url = f"{_remote_origin()}/shared-login/continue-to-umshado"
+            query = urlencode({"identity": remote.get("email") or email})
+            continue_url = f"{_remote_origin()}/shared-login/continue-to-umshado?{query}"
             return _register_page(
                 "You already have an Umcimby account. You can use that account to join UMSHADO without creating another password.",
                 "info",
