@@ -151,6 +151,7 @@ def from_umcimby():
         flash("This shared account has conflicting email and phone records. Please sign in normally and contact support.", "error")
         return redirect(url_for("main.login"))
 
+    provisioned = False
     if user is None and payload.get("provision"):
         email = (payload.get("email") or "").strip().lower()
         name = (payload.get("name") or "").strip() or "UMSHADO user"
@@ -168,6 +169,7 @@ def from_umcimby():
         user.set_password(secrets.token_urlsafe(32))
         db.session.add(user)
         db.session.commit()
+        provisioned = True
     elif user is None:
         flash("No UMSHADO account was found for this Umcimby account. Please register first.", "info")
         return redirect(url_for("main.register"))
@@ -178,6 +180,6 @@ def from_umcimby():
 
     login_user(user)
     flash("Signed in through Umcimby.", "success")
-    if not user.terms_accepted_at or user.terms_version != current_app.config["TERMS_VERSION"] or user.privacy_version != current_app.config["PRIVACY_VERSION"]:
+    if provisioned:
         return redirect(url_for("main.accept_legal_terms"))
     return redirect(url_for("main.dashboard"))
