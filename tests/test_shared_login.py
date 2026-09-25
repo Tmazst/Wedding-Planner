@@ -178,7 +178,7 @@ def test_vendor_signup_creates_remote_and_local_account(app, client, monkeypatch
         assert user.phone_number == "76123456"
 
 
-def test_existing_umcimby_vendor_is_sent_to_umcimby_login(app, client, monkeypatch):
+def test_existing_umcimby_vendor_stays_on_register_with_login_option(app, client, monkeypatch):
     class FakeResponse:
         status_code = 200
         def json(self):
@@ -193,7 +193,44 @@ def test_existing_umcimby_vendor_is_sent_to_umcimby_login(app, client, monkeypat
         "password": "secret1",
         "accept_terms": "yes",
     })
-    assert response.status_code == 302
-    assert response.headers["Location"] == "https://events.example/login"
+    assert response.status_code == 409
+    assert b"already exists in Umcimby" in response.data
+    assert b"Continue to Umcimby" in response.data
+    assert b"vendor@example.com" in response.data
     with app.app_context():
         assert db.session.scalar(db.select(User).where(User.email == "vendor@example.com")) is None
+
+
+def test_umcimby_lookup_validation_error_is_specific_and_stays_on_register(app, client, monkeypatch):
+    class FakeResponse:
+        status_code = 400
+        def json(self):
+            return {"error": "Invalid phone number."}
+
+    monkeypatch.setattr("app.shared_vendors.requests.post", lambda *args, **kwargs: FakeResponse())
+    response = client.post("/vendors/register-account", data={
+        "name": "New Vendor",
+        "email": "newvendor@example.com",
+        "phone_number": "123",
+        "phone_country": "SZ",
+        "password": "secret1",
+        "accept_terms": "yes",
+    })
+    assert response.status_code == 400
+    assert b"Invalid phone number" in response.data
+    assert b"Create account" in response.data
+
+
+def test_existing_local_account_does_not_redirect_to_login(app, client):
+    add_user(app, email="local@example.com", phone="76111111")
+    response = client.post("/vendors/register-account", data={
+        "name": "Local User",
+        "email": "local@example.com",
+        "phone_number": "76222222",
+        "phone_country": "SZ",
+        "password": "secret1",
+        "accept_terms": "yes",
+    })
+    assert response.status_code == 400
+    assert b"already exists" in response.data
+    assert b"Create account" in response.data

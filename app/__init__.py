@@ -171,6 +171,9 @@ def create_app(config_class=Config):
     from .shared_vendors import bp as shared_vendors_bp
     app.register_blueprint(shared_vendors_bp)
 
+    from .vendor_routing import route_vendor_accounts
+    app.before_request(route_vendor_accounts)
+
     from .shared_login import bp as shared_login_bp
     app.register_blueprint(shared_login_bp)
 
