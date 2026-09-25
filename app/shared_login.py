@@ -1,8 +1,9 @@
 import hashlib
+import secrets
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, flash, redirect, request, url_for
-from flask_login import current_user, login_required, login_user
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -25,14 +26,18 @@ def _serializer(salt):
     return URLSafeTimedSerializer(secret_key=secret, salt=salt)
 
 
-def _identity_payload(user):
-    return {
+def _identity_payload(user, *, provision=False, account_type=None):
+    payload = {
         "email": user.email,
         "phone_number": user.phone_number,
         "name": user.name,
         "source": "umshado",
         "target": "umcimby",
     }
+    if provision:
+        payload["provision"] = True
+        payload["account_type"] = account_type or "organizer"
+    return payload
 
 
 def _matching_user(payload):
@@ -58,18 +63,50 @@ def _consume_token(token):
     return True
 
 
-@bp.get("/to-umcimby")
-@login_required
-def to_umcimby():
-    if not _enabled():
-        return ("Not found", 404)
+def _send_to_umcimby(user, *, provision=False, account_type=None):
     destination = current_app.config.get("UMCIMBY_SSO_RECEIVE_URL") or ""
     if not destination:
         flash("Umcimby shared login is not configured yet.", "error")
-        return redirect(url_for("shared_vendors.account"))
-    token = _serializer("umshado-to-umcimby").dumps(_identity_payload(current_user))
+        return redirect(url_for("main.login"))
+    token = _serializer("umshado-to-umcimby").dumps(
+        _identity_payload(user, provision=provision, account_type=account_type)
+    )
     separator = "&" if "?" in destination else "?"
     return redirect(f"{destination}{separator}{urlencode({'token': token})}")
+
+
+@bp.route("/continue-to-umcimby", methods=["GET", "POST"])
+def continue_to_umcimby():
+    """Authenticate an existing UMSHADO account before provisioning Umcimby."""
+    if not _enabled():
+        return ("Not found", 404)
+    account_type = request.values.get("account_type", "organizer")
+    if account_type not in {"organizer", "vendor"}:
+        account_type = "organizer"
+    if current_user.is_authenticated:
+        return _send_to_umcimby(current_user, provision=True, account_type=account_type)
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = db.session.scalar(select(User).where(User.email == email))
+        if user and user.check_password(request.form.get("password", "")):
+            login_user(user)
+            return _send_to_umcimby(user, provision=True, account_type=account_type)
+        flash("Incorrect UMSHADO email or password.", "error")
+    return render_template(
+        "auth/shared_continue.html",
+        source_name="UMSHADO",
+        destination_name="Umcimby",
+        account_type=account_type,
+    )
+
+
+@bp.get("/to-umcimby")
+def to_umcimby():
+    if not _enabled():
+        return ("Not found", 404)
+    if not current_user.is_authenticated:
+        return redirect(url_for("shared_login.continue_to_umcimby"))
+    return _send_to_umcimby(current_user)
 
 
 @bp.get("/from-umcimby")
@@ -97,13 +134,28 @@ def from_umcimby():
     if identity_conflict:
         flash("This shared account has conflicting email and phone records. Please sign in normally and contact support.", "error")
         return redirect(url_for("main.login"))
-    if user is None:
+
+    if user is None and payload.get("provision"):
+        email = (payload.get("email") or "").strip().lower()
+        name = (payload.get("name") or "").strip() or "UMSHADO user"
+        phone = (payload.get("phone_number") or "").strip() or None
+        if not email:
+            flash("The Umcimby account is missing an email address.", "error")
+            return redirect(url_for("main.register"))
+        user = User(name=name, email=email, phone_number=phone, phone_country="SZ")
+        user.set_password(secrets.token_urlsafe(32))
+        db.session.add(user)
+        db.session.commit()
+    elif user is None:
         flash("No UMSHADO account was found for this Umcimby account. Please register first.", "info")
         return redirect(url_for("main.register"))
+
     if not _consume_token(token):
         flash("That shared login link has already been used. Please start again from Umcimby.", "error")
         return redirect(url_for("main.login"))
 
     login_user(user)
     flash("Signed in through Umcimby.", "success")
+    if not user.terms_accepted_at or user.terms_version != current_app.config["TERMS_VERSION"] or user.privacy_version != current_app.config["PRIVACY_VERSION"]:
+        return redirect(url_for("main.accept_legal_terms"))
     return redirect(url_for("main.dashboard"))
