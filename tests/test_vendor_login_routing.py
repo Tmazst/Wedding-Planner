@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from app import create_app
@@ -41,6 +43,7 @@ def app(monkeypatch, tmp_path):
     monkeypatch.setenv("MOJAPOS_MOCK_MODE", "true")
     application = create_app(TestConfig)
     application.config["WEDDING_PHOTO_FOLDER"] = tmp_path / "uploads" / "weddings"
+    accepted_at = datetime.now(timezone.utc)
     with application.app_context():
         db.create_all()
         vendor = User(
@@ -48,6 +51,7 @@ def app(monkeypatch, tmp_path):
             email="vendor@example.com",
             phone_number="+26876123456",
             phone_country="SZ",
+            terms_accepted_at=accepted_at,
             terms_version=application.config["TERMS_VERSION"],
             privacy_version=application.config["PRIVACY_VERSION"],
         )
@@ -57,6 +61,7 @@ def app(monkeypatch, tmp_path):
             email="couple@example.com",
             phone_number="+26876234567",
             phone_country="SZ",
+            terms_accepted_at=accepted_at,
             terms_version=application.config["TERMS_VERSION"],
             privacy_version=application.config["PRIVACY_VERSION"],
         )
