@@ -3,7 +3,7 @@ import secrets
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -30,6 +30,7 @@ def _identity_payload(user, *, provision=False, account_type=None):
     payload = {
         "email": user.email,
         "phone_number": user.phone_number,
+        "phone_country": user.phone_country,
         "name": user.name,
         "source": "umshado",
         "target": "umcimby",
@@ -77,26 +78,41 @@ def _send_to_umcimby(user, *, provision=False, account_type=None):
 
 @bp.route("/continue-to-umcimby", methods=["GET", "POST"])
 def continue_to_umcimby():
-    """Authenticate an existing UMSHADO account before provisioning Umcimby."""
+    """Authenticate the exact UMSHADO account found during Umcimby signup."""
     if not _enabled():
         return ("Not found", 404)
     account_type = request.values.get("account_type", "organizer")
     if account_type not in {"organizer", "vendor"}:
         account_type = "organizer"
+    expected_identity = (request.values.get("identity") or "").strip().lower()
+
     if current_user.is_authenticated:
-        return _send_to_umcimby(current_user, provision=True, account_type=account_type)
+        if expected_identity and current_user.email.lower() != expected_identity:
+            logout_user()
+            flash(
+                f"Please sign in with the UMSHADO account for {expected_identity} to continue.",
+                "info",
+            )
+        else:
+            return _send_to_umcimby(current_user, provision=True, account_type=account_type)
+
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        user = db.session.scalar(select(User).where(User.email == email))
-        if user and user.check_password(request.form.get("password", "")):
-            login_user(user)
-            return _send_to_umcimby(user, provision=True, account_type=account_type)
-        flash("Incorrect UMSHADO email or password.", "error")
+        if expected_identity and email != expected_identity:
+            flash(f"Please use the UMSHADO account for {expected_identity}.", "error")
+        else:
+            user = db.session.scalar(select(User).where(User.email == email))
+            if user and user.check_password(request.form.get("password", "")):
+                login_user(user)
+                return _send_to_umcimby(user, provision=True, account_type=account_type)
+            flash("Incorrect UMSHADO email or password.", "error")
+
     return render_template(
         "auth/shared_continue.html",
         source_name="UMSHADO",
         destination_name="Umcimby",
         account_type=account_type,
+        expected_identity=expected_identity,
     )
 
 
@@ -139,10 +155,16 @@ def from_umcimby():
         email = (payload.get("email") or "").strip().lower()
         name = (payload.get("name") or "").strip() or "UMSHADO user"
         phone = (payload.get("phone_number") or "").strip() or None
+        phone_country = (payload.get("phone_country") or "SZ").strip().upper()
         if not email:
             flash("The Umcimby account is missing an email address.", "error")
             return redirect(url_for("main.register"))
-        user = User(name=name, email=email, phone_number=phone, phone_country="SZ")
+        user = User(
+            name=name,
+            email=email,
+            phone_number=phone,
+            phone_country=phone_country,
+        )
         user.set_password(secrets.token_urlsafe(32))
         db.session.add(user)
         db.session.commit()
