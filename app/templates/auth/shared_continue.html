@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Continue with {{ source_name }}{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="welcome-panel">
+    <p class="eyebrow">Shared account</p>
+    <h1>Continue with {{ source_name }}</h1>
+    <p>Sign in to confirm that this account belongs to you. We will then create your {{ destination_name }} account without copying your password.</p>
+  </div>
+  <form class="card form-card" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="account_type" value="{{ account_type }}">
+    <h2>{{ source_name }} sign in</h2>
+    <label>Email<input type="email" name="email" required autocomplete="email"></label>
+    <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="button primary" type="submit"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Continue to {{ destination_name }}</button>
+  </form>
+</section>
+{% endblock %}
