@@ -19,8 +19,14 @@
         <a class="button secondary" href="{{ shared_continue_url }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Continue with Umcimby</a>
       </div>
     {% endif %}
+    {% if vendor_login_url %}
+      <div class="form-notice">
+        <p>Your vendor account is already managed in Umcimby.</p>
+        <a class="button secondary" href="{{ vendor_login_url }}"><i class="fa-solid fa-store" aria-hidden="true"></i> Continue to Umcimby</a>
+      </div>
+    {% endif %}
     <div class="account-type-actions">
-      <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create account</button>
+      <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create wedding account</button>
       {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
         <button class="button secondary" type="submit" formaction="{{ url_for('shared_vendors.register_vendor_account') }}"><i class="fa-solid fa-store" aria-hidden="true"></i> I am a vendor</button>
       {% endif %}
