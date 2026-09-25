@@ -10,8 +10,9 @@
   <form class="card form-card" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="account_type" value="{{ account_type }}">
+    <input type="hidden" name="identity" value="{{ expected_identity|default('') }}">
     <h2>{{ source_name }} sign in</h2>
-    <label>Email<input type="email" name="email" required autocomplete="email"></label>
+    <label>Email<input type="email" name="email" value="{{ expected_identity|default('') }}" required autocomplete="email"></label>
     <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="button primary" type="submit"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Continue to {{ destination_name }}</button>
   </form>
