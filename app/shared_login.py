@@ -1,6 +1,6 @@
 import hashlib
 import secrets
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_user, logout_user
@@ -24,6 +24,14 @@ def _serializer(salt):
     if not secret:
         raise RuntimeError("Shared login secret is not configured.")
     return URLSafeTimedSerializer(secret_key=secret, salt=salt)
+
+
+def _umcimby_origin():
+    destination = current_app.config.get("UMCIMBY_SSO_RECEIVE_URL") or ""
+    parsed = urlsplit(destination)
+    if not parsed.scheme or not parsed.netloc:
+        raise RuntimeError("Umcimby shared login URL is not configured.")
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def _identity_payload(user, *, provision=False, account_type=None):
@@ -74,6 +82,19 @@ def _send_to_umcimby(user, *, provision=False, account_type=None):
     )
     separator = "&" if "?" in destination else "?"
     return redirect(f"{destination}{separator}{urlencode({'token': token})}")
+
+
+@bp.get("/with-umcimby")
+def with_umcimby():
+    """Start sign-in with Umcimby from an UMSHADO login or signup page."""
+    if not _enabled():
+        return ("Not found", 404)
+    try:
+        origin = _umcimby_origin()
+    except RuntimeError:
+        flash("Umcimby shared login is not configured yet.", "error")
+        return redirect(url_for("main.login"))
+    return redirect(f"{origin}/shared-login/continue-to-umshado")
 
 
 @bp.route("/continue-to-umcimby", methods=["GET", "POST"])
