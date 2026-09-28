@@ -14,6 +14,12 @@
     <label>Email<input type="email" name="email" required autocomplete="email"></label>
     <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="button primary" type="submit"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Log in</button>
+    {% if config.DEMO_MODE_ENABLED %}
+      <div class="form-notice">
+        <p>Want to see what UMSHADO looks like before signing up?</p>
+        <a class="button secondary" href="{{ url_for('demo.enter_demo') }}"><i class="fa-solid fa-eye" aria-hidden="true"></i> Explore Demo Wedding</a>
+      </div>
+    {% endif %}
     {% if config.SHARED_LOGIN_HANDOFF_ENABLED %}
       <div class="form-notice">
         <p>Already use Umcimby?</p>
