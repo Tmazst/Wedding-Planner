@@ -18,6 +18,11 @@
         <p>You can continue with your existing Umcimby account instead of creating another password.</p>
         <a class="button secondary" href="{{ shared_continue_url }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Continue with Umcimby</a>
       </div>
+    {% elif config.SHARED_LOGIN_HANDOFF_ENABLED and not invite_token %}
+      <div class="form-notice">
+        <p>Already use Umcimby? Use that account instead of creating another password.</p>
+        <a class="button secondary" href="{{ url_for('shared_login.with_umcimby') }}"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Continue with Umcimby</a>
+      </div>
     {% endif %}
     {% if vendor_login_url %}
       <div class="form-notice">
