@@ -234,3 +234,17 @@ def test_existing_local_account_does_not_redirect_to_login(app, client):
     assert response.status_code == 400
     assert b"already exists" in response.data
     assert b"Create account" in response.data
+
+
+def test_with_umcimby_starts_remote_authentication(client):
+    response = client.get("/shared-login/with-umcimby")
+    assert response.status_code == 302
+    assert response.headers["Location"] == "https://events.example/shared-login/continue-to-umshado"
+
+
+def test_login_and_register_offer_continue_with_umcimby(client):
+    login_page = client.get("/login")
+    register_page = client.get("/register")
+    assert b"Continue with Umcimby" in login_page.data
+    assert b"/shared-login/with-umcimby" in login_page.data
+    assert b"Continue with Umcimby" in register_page.data
