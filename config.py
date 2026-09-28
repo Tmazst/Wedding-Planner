@@ -35,6 +35,11 @@ class Config:
     OWNER_PLAN_PRICE = os.getenv("OWNER_PLAN_PRICE", "60.00")
     STAKEHOLDER_PRICE = os.getenv("STAKEHOLDER_PRICE", "30.00")
 
+    # Public marketing demo. The account is seeded with `flask --app run seed-demo`
+    # and write requests are blocked while visitors are inside it.
+    DEMO_MODE_ENABLED = env_bool("DEMO_MODE_ENABLED", True)
+    DEMO_ACCOUNT_EMAIL = os.getenv("DEMO_ACCOUNT_EMAIL", "demo@umshado.app")
+
     # Advanced is deliberately feature-flagged so the code can be deployed
     # before the programme/invitation designers are opened to customers.
     ADVANCED_PLAN_ENABLED = env_bool("ADVANCED_PLAN_ENABLED", False)
