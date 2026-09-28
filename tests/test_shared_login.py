@@ -175,7 +175,7 @@ def test_vendor_signup_creates_remote_and_local_account(app, client, monkeypatch
     with app.app_context():
         user = db.session.scalar(db.select(User).where(User.email == "newvendor@example.com"))
         assert user is not None
-        assert user.phone_number == "76123456"
+        assert user.phone_number == "+26876123456"
 
 
 def test_existing_umcimby_vendor_stays_on_register_with_login_option(app, client, monkeypatch):
@@ -217,7 +217,7 @@ def test_umcimby_lookup_validation_error_is_specific_and_stays_on_register(app, 
         "accept_terms": "yes",
     })
     assert response.status_code == 400
-    assert b"Invalid phone number" in response.data
+    assert b"valid mobile phone number" in response.data
     assert b"Create account" in response.data
 
 

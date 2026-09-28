@@ -20,8 +20,6 @@ def create_app(config_class=Config):
     if not app.config.get("TESTING") and app.config["SECRET_KEY"] == "dev-change-me":
         raise RuntimeError("Set a strong SECRET_KEY before starting UMSHADO.")
 
-    # Photos used to live under /static and could therefore be opened without
-    # signing in. Move existing files out of the public tree before serving.
     legacy_photos = app.config.get("LEGACY_WEDDING_PHOTO_FOLDER")
     private_photos = app.config.get("WEDDING_PHOTO_FOLDER")
     if legacy_photos and private_photos:
@@ -67,7 +65,6 @@ def create_app(config_class=Config):
     )
 
     from .admin import record_session_visit
-
     app.before_request(record_session_visit)
 
     @app.get("/manifest.webmanifest")
@@ -109,7 +106,7 @@ def create_app(config_class=Config):
     def csrf_protect():
         if not app.config.get("CSRF_PROTECT", True) or request.method != "POST":
             return None
-        if request.endpoint == "mojapos_payments.mojapos_callback":
+        if request.endpoint in {"mojapos_payments.mojapos_callback", "shared_accounts.lookup"}:
             return None
         expected = session.get("csrf_token", "")
         supplied = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
@@ -170,6 +167,9 @@ def create_app(config_class=Config):
 
     from .shared_vendors import bp as shared_vendors_bp
     app.register_blueprint(shared_vendors_bp)
+
+    from .shared_accounts import bp as shared_accounts_bp
+    app.register_blueprint(shared_accounts_bp)
 
     from .vendor_routing import route_vendor_accounts
     app.before_request(route_vendor_accounts)

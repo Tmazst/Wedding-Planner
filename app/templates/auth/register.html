@@ -4,7 +4,7 @@
 {% block content %}
 <section class="auth-layout">
   <div class="welcome-panel"><p class="eyebrow">A simple beginning</p><h1>Start with the numbers that matter.</h1><p>Create your wedding plan and begin collecting comparable vendor quotations.</p></div>
-  <form class="card form-card" method="post">
+  <form class="card form-card" method="post" action="{{ url_for('shared_accounts.register') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="invite_token" value="{{ invite_token }}">
     <h2>Create account</h2>
@@ -13,8 +13,20 @@
     {{ phone_fields(countries, selected_country, phone_value) }}
     <label>Password<input type="password" name="password" minlength="6" required autocomplete="new-password"></label>
     <label class="consent-check"><input type="checkbox" name="accept_terms" value="yes" {% if accepted_terms|default(false) %}checked{% endif %} required><span>I agree to the <a href="{{ url_for('main.terms') }}" target="_blank" rel="noopener">Terms of Use</a> and acknowledge the <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Notice</a>.</span></label>
+    {% if shared_continue_url %}
+      <div class="form-notice">
+        <p>You can continue with your existing Umcimby account instead of creating another password.</p>
+        <a class="button secondary" href="{{ shared_continue_url }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Continue with Umcimby</a>
+      </div>
+    {% endif %}
+    {% if vendor_login_url %}
+      <div class="form-notice">
+        <p>Your vendor account is already managed in Umcimby.</p>
+        <a class="button secondary" href="{{ vendor_login_url }}"><i class="fa-solid fa-store" aria-hidden="true"></i> Continue to Umcimby</a>
+      </div>
+    {% endif %}
     <div class="account-type-actions">
-      <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create account</button>
+      <button class="button primary" type="submit"><i class="fa-solid fa-heart" aria-hidden="true"></i> Create wedding account</button>
       {% if not invite_token and config.VENDOR_FEATURE_ENABLED and config.VENDOR_ACCOUNT_INTEGRATION_ENABLED %}
         <button class="button secondary" type="submit" formaction="{{ url_for('shared_vendors.register_vendor_account') }}"><i class="fa-solid fa-store" aria-hidden="true"></i> I am a vendor</button>
       {% endif %}
