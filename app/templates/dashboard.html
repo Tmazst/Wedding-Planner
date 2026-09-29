@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ wedding.title }} · Overview{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
 {% block content %}
 <section class="page-heading heading-row wedding-heading">
   <div class="couple-heading">
@@ -17,20 +20,39 @@
 {% elif is_owner %}
 <section class="card upgrade-strip"><div><strong>Your team</strong><p>Invite your partner, matron of honour, family or trusted friends for E{{ stakeholder_price|moneyfmt(0) }} each.</p></div><a class="button primary" href="{{ url_for('billing.team') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Manage invitations</a></section><br>
 {% endif %}
-<section class="stats-grid">
-  <article class="stat"><span>Total budget</span><strong>E{{ wedding.budget_target|moneyfmt(2) }}</strong></article>
-  <article class="stat"><span>Current estimate</span><strong>E{{ selected_total|moneyfmt(2) }}</strong></article>
-  <article class="stat {{ 'warning' if remaining < 0 else '' }}"><span>{{ 'Over budget' if remaining < 0 else 'Remaining' }}</span><strong>E{{ remaining|abs|moneyfmt(2) }}</strong></article>
-  <article class="stat"><span>Quotations</span><strong>{{ quote_count }}</strong></article>
+<section class="stats-grid dashboard-stats">
+  <article class="stat dashboard-stat stat-budget"><span class="stat-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span><span>Total budget</span><strong>E{{ wedding.budget_target|moneyfmt(2) }}</strong><small>Planned wedding budget</small></article>
+  <article class="stat dashboard-stat stat-estimate"><span class="stat-icon"><i class="fa-solid fa-calculator" aria-hidden="true"></i></span><span>Current estimate</span><strong>E{{ selected_total|moneyfmt(2) }}</strong><small>From selected quotations</small></article>
+  <article class="stat dashboard-stat stat-remaining {{ 'warning' if remaining < 0 else '' }}"><span class="stat-icon"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></span><span>{{ 'Over budget' if remaining < 0 else 'Remaining' }}</span><strong>E{{ remaining|abs|moneyfmt(2) }}</strong><small>{{ 'Review selected costs' if remaining < 0 else 'Available in your plan' }}</small></article>
+  <article class="stat dashboard-stat stat-quotes"><span class="stat-icon"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span><span>Quotations</span><strong>{{ quote_count }}</strong><small>Across {{ wedding.categories|length }} budget item{{ '' if wedding.categories|length == 1 else 's' }}</small></article>
 </section>
-<section class="card action-card">
-  <div><p class="eyebrow">Financial planning</p><h2>Compare vendor quotations</h2><p>Add categories such as venue, catering, attire, photography and décor, then collect prices before deciding.</p></div>
-  <a class="button primary" href="{{ url_for('main.budget') }}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Open budget</a>
+
+<section class="dashboard-tools-heading">
+  <div><p class="eyebrow">Wedding tools</p><h2>Keep planning from here</h2><p>Open the parts of your wedding that need your attention.</p></div>
 </section>
-<section class="card action-card">
-  <div><p class="eyebrow">Advanced</p><h2>Programme & Invitations Card</h2><p>Create custom programme and invitation cards for your special day in few clicks.</p></div>
-  <a class="button primary" href="{{ url_for('advanced.home') }}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Advanced features</a>
+<section class="dashboard-action-grid">
+  <article class="card action-card dashboard-action-card budget-action {% if wedding.profile_image %}has-image{% endif %}"{% if wedding.profile_image %} style="--action-image:url('{{ url_for('main.wedding_photo') }}')"{% endif %}>
+    <div class="action-card-content">
+      <span class="action-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span>
+      <p class="eyebrow">Financial planning</p>
+      <h2>Compare vendor quotations</h2>
+      <p>Add major wedding costs, collect prices and compare vendors before you decide.</p>
+      <div class="action-meta"><span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> {{ wedding.categories|length }} budget items</span><span><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i> {{ quote_count }} quotes</span></div>
+      <a class="button primary" href="{{ url_for('main.budget') }}">Open budget <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    </div>
+  </article>
+  <article class="card action-card dashboard-action-card advanced-action {% if wedding.profile_image %}has-image{% endif %}"{% if wedding.profile_image %} style="--action-image:url('{{ url_for('main.wedding_photo') }}')"{% endif %}>
+    <div class="action-card-content">
+      <span class="action-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+      <p class="eyebrow">Advanced</p>
+      <h2>Programme & Invitation Card</h2>
+      <p>Create polished guest-facing programme and invitation designs using your wedding details.</p>
+      <div class="action-meta"><span><i class="fa-solid fa-list-check" aria-hidden="true"></i> Programme</span><span><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Invitation</span></div>
+      <a class="button primary" href="{{ url_for('advanced.home') }}">Advanced features <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    </div>
+  </article>
 </section>
+
 <section class="card live-panel" id="live-planning-panel">
   <div class="live-panel-heading">
     <div><p class="eyebrow">Live planning updates</p><h2>Your wedding team</h2></div>
