@@ -36,6 +36,9 @@
     {% endif %}
   </header>
   <main class="page-shell">
+    {% if is_demo_account %}
+      <div class="flash info"><strong>Demo mode:</strong> You can explore the full wedding plan, but changes are disabled. Create your own account when you are ready to start planning.</div>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}
     {% endwith %}
@@ -58,7 +61,7 @@
   <a class="whatsapp-support" href="https://wa.me/26879651471?text=Hello%20UMSHADO%20Support%2C%20I%20need%20help%20with%20the%20wedding%20planner." target="_blank" rel="noopener noreferrer" aria-label="Contact UMSHADO support on WhatsApp" title="WhatsApp support">
     <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Support</span>
   </a>
-  {% if current_user.is_authenticated %}{% include "components/assistant.html" %}{% endif %}
+  {% if current_user.is_authenticated and not is_demo_account %}{% include "components/assistant.html" %}{% endif %}
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/ui-actions.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/payment-confirm.js') }}" defer></script>
@@ -66,7 +69,7 @@
   {% if current_user.is_authenticated %}
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/live-activity.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/assistant.js') }}" defer></script>
+    {% if not is_demo_account %}<script src="{{ url_for('static', filename='js/assistant.js') }}" defer></script>{% endif %}
   {% endif %}
   {% block page_scripts %}{% endblock %}
 </body>
