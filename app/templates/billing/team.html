@@ -1,22 +1,61 @@
 {% extends "base.html" %}
 {% block title %}Wedding team · {{ wedding.title }}{% endblock %}
 {% block content %}
-<section class="page-heading"><p class="eyebrow">Full access</p><h1>Wedding team</h1><p>Invite the people helping you plan.{% if not wedding.owner.has_full_feature_access %} Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.{% else %} Access fees are bypassed for this unrestricted account.{% endif %}</p></section>
+<section class="page-heading">
+  <a class="text-link" href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Overview</a>
+  <p class="eyebrow">Full access</p><h1>Wedding team</h1>
+  {% if is_demo_account %}
+    <p>Share a temporary view-only invitation to let someone explore this demo wedding with you. The link expires after 90 minutes.</p>
+  {% else %}
+    <p>Invite the people helping you plan.{% if not wedding.owner.has_full_feature_access %} Stakeholder access is E{{ stakeholder_price|moneyfmt(0) }} each.{% else %} Access fees are bypassed for this unrestricted account.{% endif %}</p>
+  {% endif %}
+</section>
 <section class="split-layout">
-  <form class="card form-card compact" method="post"{% if not wedding.owner.has_full_feature_access %} data-payment-confirm data-payment-owner-only data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_display }}"{% endif %}>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="payment_confirmed" value="">
-    <h2>Create invitation</h2>
-    <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
-    <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
-    {% if wedding.owner.has_full_feature_access %}<input type="hidden" name="payer" value="owner"><p class="plan-notice"><strong>Included:</strong> This invitation will not require payment.</p>{% else %}<fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"{% if not payment_country_supported %} disabled{% endif %}> I will pay for them now</label>{% if not payment_country_supported %}<small class="muted">Owner payment currently requires an Eswatini mobile number.</small>{% endif %}</fieldset>{% endif %}
-    <button class="button primary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Create invitation</button>
-  </form>
-  <div class="team-list">
-    {% for invitation in wedding.invitations|reverse %}
-      <article class="card invite-card"><div><span class="status">{{ invitation.status|replace('_', ' ')|title }}</span><h2>{{ invitation.invitee_name or invitation.role|replace('_', ' ')|title }}</h2><p>{{ 'Access included' if wedding.owner.has_full_feature_access else ('You pay' if invitation.payer == 'owner' else 'Stakeholder pays') }}</p></div>
-      {% if invitation.status in ['pending', 'paid'] %}<div class="invite-link"><label>Invite link<input readonly data-select-on-click value="{{ url_for('billing.accept_invitation', token=invitation.token, _external=True) }}"></label></div>{% endif %}</article>
-    {% else %}<div class="card empty"><h2>No invitations yet</h2><p>Create a private link for your first stakeholder.</p></div>{% endfor %}
-  </div>
+  {% if is_demo_account %}
+    {% if demo_can_invite %}
+      <form class="card form-card compact" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2>Create temporary demo invitation</h2>
+        <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
+        <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
+        <p class="plan-notice"><strong>Demo only:</strong> The invited person can view the same Sipho & Nomsa demo, but cannot edit or save anything. The link expires after 90 minutes.</p>
+        <button class="button primary" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create demo invite</button>
+      </form>
+    {% else %}
+      <article class="card compact">
+        <p class="eyebrow">View-only guest</p>
+        <h2>You joined this demo through an invitation</h2>
+        <p>You can explore the wedding project, budget, programme and invitation card. Changes remain disabled.</p>
+        {% if demo_invited_name %}<p><strong>Invitation for:</strong> {{ demo_invited_name }}</p>{% endif %}
+        <a class="button secondary" href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to overview</a>
+      </article>
+    {% endif %}
+    <div class="team-list">
+      {% if demo_invitation and demo_can_invite %}
+        <article class="card invite-card">
+          <div><span class="status">Temporary demo invite</span><h2>{{ demo_invitation.name or demo_invitation.role|replace('_', ' ')|title }}</h2><p>View-only access · expires 90 minutes after creation</p></div>
+          <div class="invite-link"><label>Invite link<input readonly data-select-on-click value="{{ demo_invitation.url }}"></label></div>
+        </article>
+      {% else %}
+        <div class="card empty"><h2>{{ 'No temporary invitation yet' if demo_can_invite else 'View-only demo access' }}</h2><p>{{ 'Create a link and send it to someone on another phone or browser.' if demo_can_invite else 'Only the main demo visitor can create temporary invitation links.' }}</p></div>
+      {% endif %}
+    </div>
+  {% else %}
+    <form class="card form-card compact" method="post"{% if not wedding.owner.has_full_feature_access %} data-payment-confirm data-payment-owner-only data-payment-label="Stakeholder access for this wedding project" data-payment-amount="{{ stakeholder_price|moneyfmt(2) }}" data-payment-phone="{{ current_user.phone_display }}"{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="payment_confirmed" value="">
+      <h2>Create invitation</h2>
+      <label>Name (optional)<input name="invitee_name" placeholder="Who is this link for?"></label>
+      <label>Role<select name="role"><option value="partner">Partner</option><option value="matron_of_honour">Matron of Honour</option><option value="family_friend">Family / Friend</option><option value="stakeholder">Other stakeholder</option></select></label>
+      {% if wedding.owner.has_full_feature_access %}<input type="hidden" name="payer" value="owner"><p class="plan-notice"><strong>Included:</strong> This invitation will not require payment.</p>{% else %}<fieldset><legend>Who pays the E{{ stakeholder_price|moneyfmt(0) }} access fee?</legend><label class="radio"><input type="radio" name="payer" value="invitee" checked> They will pay when joining</label><label class="radio"><input type="radio" name="payer" value="owner"{% if not payment_country_supported %} disabled{% endif %}> I will pay for them now</label>{% if not payment_country_supported %}<small class="muted">Owner payment currently requires an Eswatini mobile number.</small>{% endif %}</fieldset>{% endif %}
+      <button class="button primary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Create invitation</button>
+    </form>
+    <div class="team-list">
+      {% for invitation in wedding.invitations|reverse %}
+        <article class="card invite-card"><div><span class="status">{{ invitation.status|replace('_', ' ')|title }}</span><h2>{{ invitation.invitee_name or invitation.role|replace('_', ' ')|title }}</h2><p>{{ 'Access included' if wedding.owner.has_full_feature_access else ('You pay' if invitation.payer == 'owner' else 'Stakeholder pays') }}</p></div>
+        {% if invitation.status in ['pending', 'paid'] %}<div class="invite-link"><label>Invite link<input readonly data-select-on-click value="{{ url_for('billing.accept_invitation', token=invitation.token, _external=True) }}"></label></div>{% endif %}</article>
+      {% else %}<div class="card empty"><h2>No invitations yet</h2><p>Create a private link for your first stakeholder.</p></div>{% endfor %}
+    </div>
+  {% endif %}
 </section>
 {% endblock %}
