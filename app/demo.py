@@ -203,7 +203,9 @@ def enter_demo():
     login_user(user)
     session.pop("shared_vendor_role_is_vendor", None)
     session.pop("demo_invitation", None)
-    session["demo_primary_visitor"] = True
+    session.pop("demo_invited_name", None)
+    session.pop("demo_invited_role", None)
+    session["demo_joined_via_invite"] = False
     flash("You are viewing the UMSHADO demo. Changes are disabled so the demo stays ready for everyone.", "info")
     return redirect(url_for("main.dashboard"))
 
@@ -231,15 +233,16 @@ def join_demo_invitation(token):
         logout_user()
     login_user(user)
     session.pop("shared_vendor_role_is_vendor", None)
-    session["demo_primary_visitor"] = False
+    session["demo_joined_via_invite"] = True
     session["demo_invited_name"] = payload.get("name")
     session["demo_invited_role"] = payload.get("role")
+    session.pop("demo_invitation", None)
     flash("You joined the Sipho & Nomsa demo in view-only mode.", "success")
     return redirect(url_for("main.dashboard"))
 
 
 def _create_demo_invitation():
-    if not session.get("demo_primary_visitor"):
+    if session.get("demo_joined_via_invite", False):
         flash("Only the main demo visitor can create temporary invitations.", "info")
         return redirect(url_for("billing.team"))
 
@@ -279,12 +282,13 @@ def demo_read_only_guard():
 
 def demo_context():
     is_demo = _is_demo_user(current_user)
+    joined_via_invite = bool(is_demo and session.get("demo_joined_via_invite", False))
     return {
         "is_demo_account": is_demo,
-        "demo_can_invite": bool(is_demo and session.get("demo_primary_visitor")),
-        "demo_invitation": session.get("demo_invitation") if is_demo else None,
-        "demo_invited_name": session.get("demo_invited_name") if is_demo else None,
-        "demo_invited_role": session.get("demo_invited_role") if is_demo else None,
+        "demo_can_invite": bool(is_demo and not joined_via_invite),
+        "demo_invitation": session.get("demo_invitation") if is_demo and not joined_via_invite else None,
+        "demo_invited_name": session.get("demo_invited_name") if joined_via_invite else None,
+        "demo_invited_role": session.get("demo_invited_role") if joined_via_invite else None,
     }
 
 
