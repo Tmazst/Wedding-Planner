@@ -8,6 +8,7 @@ import click
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from flask.cli import with_appcontext
 from flask_login import current_user, login_user, logout_user
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
 
 from .extensions import db
@@ -23,6 +24,7 @@ from .models import (
 
 
 bp = Blueprint("demo", __name__)
+DEMO_INVITE_MAX_AGE = 90 * 60
 
 
 def _demo_email():
@@ -35,6 +37,10 @@ def _is_demo_user(user):
         and user.is_authenticated
         and user.email.lower() == _demo_email()
     )
+
+
+def _demo_invite_serializer():
+    return URLSafeTimedSerializer(current_app.secret_key, salt="umshado-demo-team-invite")
 
 
 def _attach_demo_photo(wedding):
@@ -196,8 +202,69 @@ def enter_demo():
         logout_user()
     login_user(user)
     session.pop("shared_vendor_role_is_vendor", None)
+    session.pop("demo_invitation", None)
+    session.pop("demo_invited_name", None)
+    session.pop("demo_invited_role", None)
+    session["demo_joined_via_invite"] = False
     flash("You are viewing the UMSHADO demo. Changes are disabled so the demo stays ready for everyone.", "info")
     return redirect(url_for("main.dashboard"))
+
+
+@bp.get("/demo/join/<token>")
+def join_demo_invitation(token):
+    if not current_app.config.get("DEMO_MODE_ENABLED", True):
+        return ("Not found", 404)
+    try:
+        payload = _demo_invite_serializer().loads(token, max_age=DEMO_INVITE_MAX_AGE)
+    except SignatureExpired:
+        flash("This demo invitation has expired. Ask the sender to create a new one.", "info")
+        return redirect(url_for("main.login"))
+    except BadSignature:
+        flash("This demo invitation is invalid.", "error")
+        return redirect(url_for("main.login"))
+    if payload.get("purpose") != "demo-view":
+        return ("Not found", 404)
+
+    user = db.session.scalar(select(User).where(User.email == _demo_email()))
+    if user is None:
+        flash("The demo account is not prepared yet.", "info")
+        return redirect(url_for("main.login"))
+    if current_user.is_authenticated and current_user.id != user.id:
+        logout_user()
+    login_user(user)
+    session.pop("shared_vendor_role_is_vendor", None)
+    session["demo_joined_via_invite"] = True
+    session["demo_invited_name"] = payload.get("name")
+    session["demo_invited_role"] = payload.get("role")
+    session.pop("demo_invitation", None)
+    flash("You joined the Sipho & Nomsa demo in view-only mode.", "success")
+    return redirect(url_for("main.dashboard"))
+
+
+def _create_demo_invitation():
+    if session.get("demo_joined_via_invite", False):
+        flash("Only the main demo visitor can create temporary invitations.", "info")
+        return redirect(url_for("billing.team"))
+
+    role = request.form.get("role", "stakeholder")
+    if role not in {"partner", "matron_of_honour", "family_friend", "stakeholder"}:
+        role = "stakeholder"
+    invitee_name = request.form.get("invitee_name", "").strip() or None
+    token = _demo_invite_serializer().dumps(
+        {
+            "purpose": "demo-view",
+            "nonce": secrets.token_urlsafe(10),
+            "name": invitee_name,
+            "role": role,
+        }
+    )
+    session["demo_invitation"] = {
+        "name": invitee_name,
+        "role": role,
+        "url": url_for("demo.join_demo_invitation", token=token, _external=True),
+    }
+    flash("Temporary demo invitation created. It will expire in 90 minutes.", "success")
+    return redirect(url_for("billing.team"))
 
 
 def demo_read_only_guard():
@@ -207,12 +274,22 @@ def demo_read_only_guard():
         return None
     if request.endpoint == "main.logout":
         return None
+    if request.endpoint == "billing.team" and request.method == "POST":
+        return _create_demo_invitation()
     flash("This is a read-only demo. Create your own account to save changes.", "info")
     return redirect(request.referrer or url_for("main.dashboard"))
 
 
 def demo_context():
-    return {"is_demo_account": _is_demo_user(current_user)}
+    is_demo = _is_demo_user(current_user)
+    joined_via_invite = bool(is_demo and session.get("demo_joined_via_invite", False))
+    return {
+        "is_demo_account": is_demo,
+        "demo_can_invite": bool(is_demo and not joined_via_invite),
+        "demo_invitation": session.get("demo_invitation") if is_demo and not joined_via_invite else None,
+        "demo_invited_name": session.get("demo_invited_name") if joined_via_invite else None,
+        "demo_invited_role": session.get("demo_invited_role") if joined_via_invite else None,
+    }
 
 
 @click.command("seed-demo")
