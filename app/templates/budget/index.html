@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Budget · {{ wedding.title }}{% endblock %}
 {% block content %}
-<section class="page-heading"><p class="eyebrow">Financial plan</p><h1>Budget & quotations</h1><p>Build the budget one decision at a time.</p></section>
+<section class="page-heading"><a class="text-link" href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Overview</a><p class="eyebrow">Financial plan</p><h1>Budget & quotations</h1><p>Build the budget one decision at a time.</p></section>
 <section class="budget-summary">
   <article><span>Wedding budget</span><strong>E{{ wedding.budget_target|moneyfmt(2) }}</strong></article>
   <article><span>Items planned</span><strong>E{{ planned_total|moneyfmt(2) }}</strong></article>
