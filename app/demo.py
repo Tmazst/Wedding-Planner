@@ -1,6 +1,8 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 import secrets
+import shutil
 
 import click
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
@@ -33,6 +35,21 @@ def _is_demo_user(user):
         and user.is_authenticated
         and user.email.lower() == _demo_email()
     )
+
+
+def _attach_demo_photo(wedding):
+    """Copy the bundled demo image into private wedding-photo storage when present."""
+    source = Path(current_app.static_folder) / "images" / "demo" / "demo-couple.jpg"
+    if not source.is_file():
+        wedding.profile_image = None
+        return False
+
+    folder = Path(current_app.config["WEDDING_PHOTO_FOLDER"]) / str(wedding.id)
+    folder.mkdir(parents=True, exist_ok=True)
+    destination = folder / "demo-couple.jpg"
+    shutil.copyfile(source, destination)
+    wedding.profile_image = f"weddings/{wedding.id}/demo-couple.jpg"
+    return True
 
 
 def seed_demo_wedding():
@@ -79,6 +96,7 @@ def seed_demo_wedding():
     )
     db.session.add(wedding)
     db.session.flush()
+    photo_attached = _attach_demo_photo(wedding)
 
     budget = [
         ("Venue", "15000.00", [("Ezulwini Gardens Demo Venue", "14500.00"), ("Mountain View Demo Venue", "16000.00")]),
@@ -117,7 +135,7 @@ def seed_demo_wedding():
         font_style="elegant",
         primary_color="#7d1020",
         accent_color="#b88a3b",
-        show_profile_image=False,
+        show_profile_image=photo_attached,
         closing_message="Thank you for celebrating this beautiful day with us.",
         is_published=True,
         share_token="umshado-demo-programme",
@@ -155,7 +173,7 @@ def seed_demo_wedding():
         font_style="elegant",
         primary_color="#7d1020",
         accent_color="#b88a3b",
-        show_profile_image=False,
+        show_profile_image=photo_attached,
         event_time="10:00",
         message="Together with their families, Sipho and Nomsa invite you to celebrate their wedding day in Ezulwini.",
         is_published=True,
@@ -163,7 +181,7 @@ def seed_demo_wedding():
     ))
 
     db.session.commit()
-    return user
+    return user, photo_attached
 
 
 @bp.get("/demo")
@@ -200,8 +218,14 @@ def demo_context():
 @click.command("seed-demo")
 @with_appcontext
 def seed_demo_command():
-    seed_demo_wedding()
+    _, photo_attached = seed_demo_wedding()
     click.echo("UMSHADO demo wedding is ready.")
+    if photo_attached:
+        click.echo("Demo couple image attached.")
+    else:
+        click.echo(
+            "Demo image not found. Add app/static/images/demo/demo-couple.jpg and run seed-demo again."
+        )
 
 
 def register_demo(app):
