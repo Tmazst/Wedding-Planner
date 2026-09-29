@@ -56,7 +56,10 @@
 <section class="card live-panel" id="live-planning-panel">
   <div class="live-panel-heading">
     <div><p class="eyebrow">Live planning updates</p><h2>Your wedding team</h2></div>
-    <span class="connection-status" id="connection-status"><span aria-hidden="true"></span> Connecting…</span>
+    <div class="live-panel-actions">
+      <a class="button secondary" href="{{ url_for('billing.team') }}"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Invite</a>
+      <span class="connection-status" id="connection-status"><span aria-hidden="true"></span> Connecting…</span>
+    </div>
   </div>
   <div class="online-team" id="online-team" aria-live="polite"><span class="muted">Checking who is online…</span></div>
   <ol class="activity-feed" id="activity-feed" aria-live="polite">
