@@ -1,6 +1,8 @@
+from urllib.parse import urlparse
+
 from app import create_app
 from app.extensions import db
-from app.models import InvitationCardDesign, User, WeddingProgramme
+from app.models import Invitation, InvitationCardDesign, User, WeddingProgramme
 
 
 class TestConfig:
@@ -99,3 +101,40 @@ def test_demo_is_one_click_and_read_only(monkeypatch, tmp_path):
         user = db.session.scalar(db.select(User).where(User.email == "demo@umshado.app"))
         assert user.weddings[0].title == "Sipho & Nomsa"
         assert str(user.weddings[0].budget_target) == "95000.00"
+
+
+def test_demo_owner_can_create_cross_device_view_only_invite(monkeypatch, tmp_path):
+    app = make_app(monkeypatch, tmp_path)
+    app.test_cli_runner().invoke(args=["seed-demo"])
+    owner_client = app.test_client()
+    owner_client.get("/demo")
+
+    response = owner_client.post(
+        "/team",
+        data={"invitee_name": "Lindiwe", "role": "partner"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Temporary demo invite" in response.data
+    assert b"Lindiwe" in response.data
+
+    with owner_client.session_transaction() as demo_session:
+        invite_url = demo_session["demo_invitation"]["url"]
+        assert demo_session["demo_primary_visitor"] is True
+
+    with app.app_context():
+        assert db.session.scalar(db.select(Invitation)) is None
+
+    guest_client = app.test_client()
+    join_path = urlparse(invite_url).path
+    response = guest_client.get(join_path, follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Sipho &amp; Nomsa" in response.data or b"Sipho & Nomsa" in response.data
+
+    with guest_client.session_transaction() as guest_session:
+        assert guest_session["demo_primary_visitor"] is False
+        assert guest_session["demo_invited_name"] == "Lindiwe"
+        assert guest_session["demo_invited_role"] == "partner"
+
+    response = guest_client.post("/team", data={"invitee_name": "Blocked", "role": "stakeholder"})
+    assert response.status_code == 302
