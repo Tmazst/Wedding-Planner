@@ -8,3 +8,4 @@ app/static/uploads/weddings/*
 !app/static/uploads/weddings/.gitkeep
 app/billing.py
 updates.txt
+app/static/images/demo/demo-couple.jpg
