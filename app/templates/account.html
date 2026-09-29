@@ -2,7 +2,7 @@
 {% from "components/phone_fields.html" import phone_fields %}
 {% block title %}My account · Wedding Planner{% endblock %}
 {% block content %}
-<section class="page-heading"><p class="eyebrow">Your account</p><h1>Details & plan</h1><p>Keep your contact details ready for MoMo payments and review your wedding access.</p></section>
+<section class="page-heading"><a class="text-link" href="{{ url_for('main.dashboard') }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Overview</a><p class="eyebrow">Your account</p><h1>Details & plan</h1><p>Keep your contact details ready for MoMo payments and review your wedding access.</p></section>
 {% if current_user.is_super_admin %}<p class="plan-notice"><strong>Super admin:</strong> All UMSHADO features are available to this account.</p>{% elif current_user.is_admin %}<p class="plan-notice"><strong>Administrator:</strong> All UMSHADO features are available to this account.</p>{% elif current_user.has_test_access %}<p class="plan-notice"><strong>Test account:</strong> Package and payment limits are disabled for testing.</p>{% endif %}
 <section class="account-layout">
   <form class="card form-card" method="post">
